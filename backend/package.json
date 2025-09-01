@@ -1,0 +1,29 @@
+{
+  "name": "ems-backend",
+  "version": "1.0.0",
+  "description": "Backend for Employee Management System",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "assign-ids": "node assignEmployeeIds.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.19.0",
+    "mongoose": "^8.18.0",
+
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "keywords": ["express", "mongodb", "mongoose", "jwt", "cors"],
+  "author": "Your Name",
+  "license": "MIT"
+}
