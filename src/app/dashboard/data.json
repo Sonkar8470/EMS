@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "header": "Employee Onboarding",
+    "type": "Process",
+    "status": "Done",
+    "target": "18",
+    "limit": "5",
+    "reviewer": "HR Manager"
+  },
+  {
+    "id": 2,
+    "header": "Attendance Tracking",
+    "type": "System",
+    "status": "In Process",
+    "target": "29",
+    "limit": "24",
+    "reviewer": "System Admin"
+  },
+  {
+    "id": 3,
+    "header": "Leave Management",
+    "type": "Process",
+    "status": "Done",
+    "target": "10",
+    "limit": "13",
+    "reviewer": "HR Manager"
+  }
+]
