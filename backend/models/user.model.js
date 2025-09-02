@@ -8,6 +8,9 @@ const userSchema = new mongoose.Schema(
       unique: true,
       sparse: true, // Allows null/undefined values
     },
+    joiningDate: {
+      type: Date,
+    },
     name: {
       type: String,
       required: true,
@@ -43,6 +46,10 @@ const userSchema = new mongoose.Schema(
       match: [/^[0-9]{10}$/, "Please enter a valid 10-digit mobile number"],
     },
     address: {
+      type: String,
+      trim: true,
+    },
+    position: {
       type: String,
       trim: true,
     },

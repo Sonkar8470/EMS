@@ -87,6 +87,10 @@ router.post("/request", authMiddleware, async (req, res) => {
     });
     
     await newRequest.save();
+    try {
+      const io = req.app.get("io");
+      if (io) io.to(String(employeeId)).emit("attendanceUpdated", { employeeId: String(employeeId) });
+    } catch {}
     
     res.status(201).json({
       message: "WFH request submitted successfully",

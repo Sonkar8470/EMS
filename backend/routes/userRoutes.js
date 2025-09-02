@@ -1,13 +1,18 @@
 import express from "express";
-import User from "../models/user.model.js";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
+import User from "../models/user.model.js";
 
 const router = express.Router();
 
-// POST /api/users/signup
+// --- Helper: Validate MongoDB ID ---
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+// --- Signup Route ---
 router.post("/signup", async (req, res) => {
   try {
-    const { name, email, password, mobile, role, address } = req.body;
+    const { name, email, password, mobile, role, address, joiningDate, position } = req.body;
 
     const exists = await User.findOne({ $or: [{ email }, { mobile }] });
     if (exists) {
@@ -21,14 +26,16 @@ router.post("/signup", async (req, res) => {
       mobile,
       role: role || "employee",
       address,
+      position,
+      joiningDate: joiningDate ? new Date(joiningDate) : undefined,
     });
 
     res.status(201).json({
       message: "Signup successful",
       user: {
         ...user.toObject(),
-        id: user._id, // Add id field for frontend compatibility
-        employeeId: user.employeeId || "Pending", // Include employee ID
+        id: user._id,
+        employeeId: user.employeeId || "Pending",
       },
     });
   } catch (err) {
@@ -41,163 +48,160 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-// POST /api/users/login
-import jwt from "jsonwebtoken";
-
+// --- Login Route ---
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ message: "Email and password required" });
-  }
+  if (!email || !password) return res.status(400).json({ message: "Email and password required" });
 
   try {
-    // Include password because select:false in schema
     const user = await User.findOne({ email }).select("+password");
-    if (!user) {
+    if (!user || !(await user.correctPassword?.(password, user.password))) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // Compare password (hash verify)
-    const isMatch = await user.correctPassword(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid email or password" });
-    }
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
-    // 🔑 Token generate karo
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET, // isko .env file me rakho
-      { expiresIn: "1h" }
-    );
-    
-    // Generate refresh token with longer expiry
-    const refreshToken = jwt.sign(
-      { id: user._id },
-      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
-    // Hide password before sending
     user.password = undefined;
-    
-    // Set HTTP-only cookies for better security
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Only use HTTPS in production
-      sameSite: "strict",
-      maxAge: 60 * 60 * 1000, // 1 hour in milliseconds
-    });
-    
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
-    });
+
+    res
+      .cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 60 * 60 * 1000,
+      })
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
 
     res.status(200).json({
       message: "Login successful ✅",
-      token: token, // Include token in response body for frontend
+      token,
       user: {
         ...user.toObject(),
-        id: user._id, // Add id field for frontend compatibility
-        employeeId: user.employeeId || "Pending", // Include employee ID
+        id: user._id,
+        employeeId: user.employeeId || "Pending",
       },
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error ❌" });
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-
-// GET /api/users/next-employee-id - Get next available employee ID
+// --- Next Employee ID ---
 router.get("/next-employee-id", async (req, res) => {
   try {
-    const nextId = await User.getNextEmployeeId();
+    const nextId = User.getNextEmployeeId ? await User.getNextEmployeeId() : `2025-${(await User.countDocuments()) + 1}`;
     res.json({ nextEmployeeId: nextId });
   } catch (err) {
-    console.error("Error getting next employee ID:", err);
+    console.error("Get next ID error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// GET /api/users - Fetch all users (protected route)
+// --- Get All Users ---
 router.get("/", async (req, res) => {
   try {
-    console.log("GET /api/users - Fetching all users...");
-    
-    // Fetch all users but exclude password field
     const users = await User.find({}).select("-password");
-    
-    console.log(`GET /api/users - Found ${users.length} users`);
-    
-    // Map _id to id for frontend compatibility
-    const usersWithId = users.map(user => ({
-      ...user.toObject(),
-      id: user._id,
-      employeeId: user.employeeId || "Pending" // Include employee ID
-    }));
-    
-    res.json(usersWithId);
+    res.json(users.map(u => ({ ...u.toObject(), id: u._id, employeeId: u.employeeId || "Pending" })));
   } catch (err) {
-    console.error("GET /api/users - Error:", err);
+    console.error("Get all users error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// GET /api/users/:id - Fetch specific user by ID
+// --- Get One User ---
 router.get("/:id", async (req, res) => {
+  const { id } = req.params;
+  if (!isValidObjectId(id)) return res.status(400).json({ message: "Invalid user ID" });
+
   try {
-    const { id } = req.params;
-    console.log(`GET /api/users/${id} - Fetching user...`);
-    
     const user = await User.findById(id).select("-password");
-    
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    
-    console.log(`GET /api/users/${id} - User found:`, user.name);
-    
-    // Map _id to id for frontend compatibility
-    const userWithId = {
-      ...user.toObject(),
-      id: user._id,
-      employeeId: user.employeeId || "Pending" // Include employee ID
-    };
-    
-    res.json(userWithId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({ ...user.toObject(), id: user._id, employeeId: user.employeeId || "Pending" });
   } catch (err) {
-    console.error(`GET /api/users/${req.params.id} - Error:`, err);
+    console.error("Get user by ID error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// routes/userRoutes.js
+// --- Update User ---
+router.put("/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name, email, mobile, role, address, position, joiningDate } = req.body;
 
-// Logout route to clear cookies
-router.post("/logout", (req, res) => {
-  // Clear both token cookies
-  res.cookie("token", "", {
-    httpOnly: true,
-    expires: new Date(0), // Expire immediately
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
-  });
-  
-  res.cookie("refreshToken", "", {
-    httpOnly: true,
-    expires: new Date(0), // Expire immediately
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
-  });
-  
-  res.status(200).json({ message: "Logged out successfully" });
+  if (!isValidObjectId(id)) return res.status(400).json({ message: "Invalid user ID" });
+
+  try {
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (email && email !== user.email && await User.findOne({ email, _id: { $ne: id } })) {
+      return res.status(400).json({ message: "Email already in use" });
+    }
+
+    if (mobile && mobile !== user.mobile && await User.findOne({ mobile, _id: { $ne: id } })) {
+      return res.status(400).json({ message: "Mobile number already in use" });
+    }
+
+    Object.assign(user, { name, email, mobile, role, address, position });
+    if (joiningDate !== undefined) {
+      user.joiningDate = joiningDate ? new Date(joiningDate) : undefined;
+    }
+    await user.save();
+
+    const updatedUser = user.toObject();
+    delete updatedUser.password;
+
+    try {
+      const io = req.app.get("io");
+      if (io) io.to(String(user._id)).emit("employeeUpdated", { employeeId: String(user._id) });
+    } catch {}
+    res.json({ message: "User updated successfully", user: { ...updatedUser, id: user._id } });
+  } catch (err) {
+    console.error("Update user error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
-// Request password reset
+// --- Delete User ---
+router.delete("/:id", async (req, res) => {
+  const { id } = req.params;
+  if (!isValidObjectId(id)) return res.status(400).json({ message: "Invalid user ID" });
+
+  try {
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    await User.findByIdAndDelete(id);
+    res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    console.error("Delete user error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// --- Logout ---
+router.post("/logout", (req, res) => {
+  res
+    .cookie("token", "", { httpOnly: true, expires: new Date(0), sameSite: "strict", secure: process.env.NODE_ENV === "production" })
+    .cookie("refreshToken", "", { httpOnly: true, expires: new Date(0), sameSite: "strict", secure: process.env.NODE_ENV === "production" })
+    .status(200).json({ message: "Logged out successfully" });
+});
+
+// --- Forgot Password ---
 router.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: "Email required" });
@@ -206,30 +210,22 @@ router.post("/forgot-password", async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Generate token
     const resetToken = crypto.randomBytes(20).toString("hex");
-    const resetExpire = Date.now() + 15 * 60 * 1000; // 15 minutes
-
     user.passwordResetToken = resetToken;
-    user.passwordResetExpires = resetExpire;
+    user.passwordResetExpires = Date.now() + 15 * 60 * 1000;
     await user.save();
 
-    // In production, send email. Here, just return token for testing
-    res.status(200).json({
-      message: "Password reset token generated",
-      resetToken,
-    });
+    res.status(200).json({ message: "Token generated", resetToken });
   } catch (err) {
-    console.error(err);
+    console.error("Forgot password error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Reset password
+// --- Reset Password ---
 router.post("/reset-password", async (req, res) => {
   const { email, token, newPassword } = req.body;
-  if (!email || !token || !newPassword)
-    return res.status(400).json({ message: "All fields required" });
+  if (!email || !token || !newPassword) return res.status(400).json({ message: "All fields required" });
 
   try {
     const user = await User.findOne({
@@ -247,131 +243,36 @@ router.post("/reset-password", async (req, res) => {
 
     res.status(200).json({ message: "Password reset successful ✅" });
   } catch (err) {
-    console.error(err);
+    console.error("Reset password error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Update user by ID
-router.put("/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, email, mobile, role, address } = req.body;
-    
-    console.log(`PUT /api/users/${id} - Updating user...`);
-    
-    const user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    
-    // Check if email is being changed and if it already exists
-    if (email && email !== user.email) {
-      const emailExists = await User.findOne({ email, _id: { $ne: id } });
-      if (emailExists) {
-        return res.status(400).json({ message: "Email already exists" });
-      }
-    }
-    
-    // Check if mobile is being changed and if it already exists
-    if (mobile && mobile !== user.mobile) {
-      const mobileExists = await User.findOne({ mobile, _id: { $ne: id } });
-      if (mobileExists) {
-        return res.status(400).json({ message: "Mobile number already exists" });
-      }
-    }
-    
-    // Update user fields
-    if (name) user.name = name;
-    if (email) user.email = email;
-    if (mobile) user.mobile = mobile;
-    if (role) user.role = role;
-    if (address !== undefined) user.address = address;
-    
-    await user.save();
-    
-    console.log(`PUT /api/users/${id} - User updated successfully`);
-    
-    // Return updated user without password
-    const updatedUser = {
-      ...user.toObject(),
-      id: user._id
-    };
-    delete updatedUser.password;
-    
-    res.json({
-      message: "User updated successfully",
-      user: updatedUser
-    });
-  } catch (err) {
-    console.error(`PUT /api/users/${req.params.id} - Error:`, err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// Delete user by ID
-router.delete("/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    console.log(`DELETE /api/users/${id} - Deleting user...`);
-    
-    const user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    
-    // Check if user is trying to delete themselves
-    // You might want to add additional checks here (e.g., admin only)
-    
-    await User.findByIdAndDelete(id);
-    
-    console.log(`DELETE /api/users/${id} - User deleted successfully`);
-    
-    res.json({ message: "User deleted successfully" });
-  } catch (err) {
-    console.error(`DELETE /api/users/${req.params.id} - Error:`, err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// POST /api/users/assign-employee-ids - Assign employee IDs to existing users
+// --- Assign Employee IDs ---
 router.post("/assign-employee-ids", async (req, res) => {
   try {
-    console.log("POST /api/users/assign-employee-ids - Assigning employee IDs...");
-    
-    // Find all employees without employee IDs
-    const employeesWithoutId = await User.find({ 
-      role: "employee", 
-      $or: [{ employeeId: { $exists: false } }, { employeeId: null }] 
+    const employees = await User.find({
+      role: "employee",
+      $or: [{ employeeId: { $exists: false } }, { employeeId: null }],
     });
-    
-    console.log(`Found ${employeesWithoutId.length} employees without employee IDs`);
-    
+
     let assignedCount = 0;
-    for (const employee of employeesWithoutId) {
+    for (const employee of employees) {
       try {
-        // Generate next available employee ID
-        const nextId = await User.getNextEmployeeId();
+        const nextId = User.getNextEmployeeId ? await User.getNextEmployeeId() : `2025-${assignedCount + 1}`;
         employee.employeeId = nextId;
         await employee.save();
         assignedCount++;
-        console.log(`Assigned ${nextId} to ${employee.name}`);
       } catch (err) {
-        console.error(`Error assigning ID to ${employee.name}:`, err);
+        console.error(`ID assign error for ${employee.name}:`, err);
       }
     }
-    
-    res.json({ 
-      message: `Successfully assigned employee IDs to ${assignedCount} employees`,
-      assignedCount 
-    });
+
+    res.json({ message: `Assigned IDs to ${assignedCount} employees`, assignedCount });
   } catch (err) {
-    console.error("Error assigning employee IDs:", err);
+    console.error("Assign employee IDs error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
 export default router;
-
-

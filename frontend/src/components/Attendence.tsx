@@ -5,9 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon, User, UserCheck, ChevronLeft, ChevronRight, Home, Plane, RefreshCw } from "lucide-react";
+import { Calendar as CalendarIcon, User, UserCheck, ChevronLeft, ChevronRight, Home, Plane, RefreshCw, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { userAPI, attendanceAPI } from "@/services/api";
+import { userAPI, attendanceAPI, getSocket } from "@/services/api";
+import { useAuth } from "@/hooks/useAuth";
 
 // Interfaces based on Mongoose schemas from models folder
 interface User {
@@ -25,10 +26,10 @@ interface User {
 }
 
 interface AttendanceRecord {
-  _id: string;
+  _id?: string;
   employeeId: string; // ObjectId as string
   date: string; // YYYY-MM-DD
-  status: "Present" | "Leave" | "WFH" | "Holiday"; // Extended for admin view
+  status: "Present" | "Absent" | "Leave" | "WFH" | "Holiday" | "W/O"; // Extended for admin view
   inTime?: string;
   outTime?: string;
   workedHours?: number;
@@ -38,12 +39,15 @@ interface AttendanceRecord {
   };
   userId?: number; // For backward compatibility
   id?: string; // For frontend compatibility
+  holidayName?: string; // Fixed holiday display name
 }
 
 export default function Attendance() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [, setUsers] = useState<User[]>([]);
   const [employees, setEmployees] = useState<User[]>([]);
+  const [employeeFilter, setEmployeeFilter] = useState("");
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -54,18 +58,21 @@ export default function Attendance() {
   const [attendanceStats, setAttendanceStats] = useState({
     totalDays: 0,
     presentDays: 0,
+    absentDays: 0,
     leaveDays: 0,
     wfhDays: 0,
     holidayDays: 0,
     attendancePercentage: 0
   });
-
-
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [loadingAttendance, setLoadingAttendance] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Fetch Users and filter employees
   useEffect(() => {
     const fetchUsers = async () => {
       try {
+        setLoadingEmployees(true);
         const response = await userAPI.getAllUsers();
         const data = response.data;
         setUsers(data);
@@ -80,11 +87,14 @@ export default function Attendance() {
         setEmployees(employeeUsers);
       } catch (err) {
         console.error("Error fetching users:", err);
+        setErrorMessage("Failed to fetch employees. Please try again.");
         toast({
           variant: "destructive",
           title: "Error",
           description: "Failed to fetch employees. Please try again.",
         });
+      } finally {
+        setLoadingEmployees(false);
       }
     };
     
@@ -100,10 +110,12 @@ export default function Attendance() {
 
     try {
       setIsRefreshing(true);
+      setLoadingAttendance(true);
+      setErrorMessage(null);
       
       // Get start and end of current month
       const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const endOfMonth = new Date(currentDate.getMonth() + 1, 0);
+      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
       const response = await attendanceAPI.getAllAttendance({
         employeeId: selectedEmployeeId,
@@ -111,29 +123,23 @@ export default function Attendance() {
         endDate: endOfMonth.toISOString().split('T')[0]
       });
       
-      const data = response.data;
+      const data = (Array.isArray(response.data) ? response.data : []) as AttendanceRecord[];
+
+      // Normalize dates to YYYY-MM-DD and ensure matching employee
+      const normalize = (d: string) => d.slice(0, 10);
+      const records = data
+        .filter(r => r.employeeId === selectedEmployeeId || (r.userId && r.userId === parseInt(selectedEmployeeId)))
+        .map(r => ({ ...r, date: normalize(r.date) }));
       
-      let filteredData = Array.isArray(data) ? data : [];
-      
-      // Filter by employeeId or userId
-      filteredData = filteredData.filter((record: AttendanceRecord) => 
-        record.employeeId === selectedEmployeeId || 
-        (record.userId && record.userId === parseInt(selectedEmployeeId))
-      );
-      
-      // Filter by current month
-      filteredData = filteredData.filter((record: AttendanceRecord) => {
-        const recordDate = new Date(record.date);
-        return recordDate >= startOfMonth && recordDate <= endOfMonth;
-      });
-      
-      setAttendance(filteredData);
+      setAttendance(records);
       setLastUpdated(new Date());
     } catch (err) {
       console.error("Error fetching attendance:", err);
+      setErrorMessage("Failed to fetch attendance. Please try again.");
       setAttendance([]);
     } finally {
       setIsRefreshing(false);
+      setLoadingAttendance(false);
     }
   }, [selectedEmployeeId, currentDate]);
 
@@ -144,23 +150,34 @@ export default function Attendance() {
     }
   }, [selectedEmployeeId, currentDate, fetchAttendance]);
 
-  // Auto-refresh attendance data every 30 seconds for live updates
+  // Live updates from Socket.IO for admin changes
   useEffect(() => {
-    if (!selectedEmployeeId) return;
-    
-    const interval = setInterval(() => {
-      fetchAttendance();
-    }, 30000); // Refresh every 30 seconds
+    try {
+      const socket = getSocket();
+      const onUpdate = () => {
+        // Always refetch for admin screen
+        fetchAttendance();
+      };
+      socket.on("attendanceUpdated", onUpdate);
+      socket.on("holidayUpdated", onUpdate);
+      return () => {
+        socket.off("attendanceUpdated", onUpdate);
+        socket.off("holidayUpdated", onUpdate);
+      };
+    } catch (err) {
+      console.warn("Socket not initialized:", err);
+    }
+  }, [fetchAttendance]);
 
-    return () => clearInterval(interval);
-  }, [selectedEmployeeId, fetchAttendance]);
+  // Removed polling in favor of manual refresh (and future WebSocket updates)
 
   // Calculate attendance statistics
   useEffect(() => {
-    if (attendance.length === 0) {
+    if (!selectedEmployeeId) {
       setAttendanceStats({
         totalDays: 0,
         presentDays: 0,
+        absentDays: 0,
         leaveDays: 0,
         wfhDays: 0,
         holidayDays: 0,
@@ -169,41 +186,75 @@ export default function Attendance() {
       return;
     }
 
-    // Count days for the currently selected employee only
-    const presentDays = attendance.filter(rec => 
-      rec.status.toLowerCase() === "present" && 
-      (rec.employeeId === selectedEmployeeId || (rec.userId && rec.userId === parseInt(selectedEmployeeId)))
-    ).length;
+    // Helpers for working-day detection
+    const isSunday = (d: Date) => d.getDay() === 0;
+    const isSecondOrFourthSaturday = (d: Date) => {
+      if (d.getDay() !== 6) return false;
+      const occ = Math.ceil(d.getDate() / 7);
+      return occ === 2 || occ === 4;
+    };
+    // Build a quick lookup by date
+    const byDate = new Map<string, AttendanceRecord>();
+    for (const r of attendance) byDate.set(r.date, r);
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const startOfMonth = new Date(year, month, 1);
+    const endOfMonth = new Date(year, month + 1, 0);
+    const today = new Date();
+
+    let presentDays = 0;
+    let leaveDays = 0;
+    let wfhDays = 0;
+    let holidayDays = 0;
+    let absentMarkedDays = 0;
     
-    const leaveDays = attendance.filter(rec => 
-      rec.status.toLowerCase() === "leave" && 
-      (rec.employeeId === selectedEmployeeId || (rec.userId && rec.userId === parseInt(selectedEmployeeId)))
-    ).length;
-    
-    const wfhDays = attendance.filter(rec => 
-      rec.status.toLowerCase() === "wfh" && 
-      (rec.employeeId === selectedEmployeeId || (rec.userId && rec.userId === parseInt(selectedEmployeeId)))
-    ).length;
-    
-    const holidayDays = attendance.filter(rec => 
-      rec.status.toLowerCase() === "holiday" && 
-      (rec.employeeId === selectedEmployeeId || (rec.userId && rec.userId === parseInt(selectedEmployeeId)))
-    ).length;
-    
-    const totalWorkingDays = presentDays + leaveDays + wfhDays; // Exclude holidays from total
+
+    for (const r of attendance) {
+      const status = r.status.toLowerCase();
+      if (status === "present") {
+        presentDays += 1;
+        
+      } else if (status === "leave") {
+        leaveDays += 1;
+      } else if (status === "wfh") {
+        wfhDays += 1;
+      } else if (status === "holiday") {
+        holidayDays += 1;
+      } else if (status === "absent") {
+        absentMarkedDays += 1;
+      }
+    }
+
+    let workingDaysInMonth = 0;
+    for (let d = new Date(startOfMonth); d <= endOfMonth; d.setDate(d.getDate() + 1)) {
+      const weekend = isSunday(d) || isSecondOrFourthSaturday(d);
+      const isFuture = d > today;
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const rec = byDate.get(dateStr);
+      const isHoliday = rec?.status?.toLowerCase() === 'holiday';
+      const isWO = rec?.status?.toLowerCase() === 'w/o' || weekend;
+      if (!isWO && !isHoliday) {
+        if (!isFuture) workingDaysInMonth += 1;
+        // Do not infer Absent for missing past working days
+      }
+    }
+
+    const absentDays = absentMarkedDays; // Only count days explicitly marked Absent
+    const totalWorkingDays = workingDaysInMonth;
     const attendancePercentage = totalWorkingDays > 0 ? Math.round(((presentDays + wfhDays) / totalWorkingDays) * 100) : 0;
 
     setAttendanceStats({
       totalDays: attendance.length,
       presentDays,
+      absentDays,
       leaveDays,
       wfhDays,
       holidayDays,
       attendancePercentage
     });
 
-
-  }, [attendance, selectedEmployeeId]);
+  }, [attendance, selectedEmployeeId, currentDate]);
 
   // Calendar functions
   const getDaysInMonth = (date: Date) => {
@@ -232,19 +283,27 @@ export default function Attendance() {
   const getAttendanceForDate = (day: number) => {
     if (!day) return null;
     const dateString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return attendance.find(record => record.date === dateString);
+    const rec = attendance.find(record => record.date === dateString);
+    const today = new Date();
+    const d = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    if (!rec && d > today) return null;
+    return rec || null;
   };
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case "present":
         return "bg-green-500 text-white";
+      case "absent":
+        return "bg-red-500 text-white";
       case "leave":
         return "bg-yellow-500 text-white";
       case "wfh":
         return "bg-blue-500 text-white";
       case "holiday":
         return "bg-purple-500 text-white";
+      case "w/o":
+        return "bg-gray-500 text-white";
 
       default:
         return "bg-gray-100 text-gray-600 hover:bg-gray-200";
@@ -255,11 +314,15 @@ export default function Attendance() {
     switch (status?.toLowerCase()) {
       case "present":
         return <UserCheck className="h-3 w-3" />;
+      case "absent":
+        return <XCircle className="h-3 w-3" />;
       case "leave":
         return <Plane className="h-3 w-3" />;
       case "wfh":
         return <Home className="h-3 w-3" />;
       case "holiday":
+        return <CalendarIcon className="h-3 w-3" />;
+      case "w/o":
         return <CalendarIcon className="h-3 w-3" />;
       default:
         return null;
@@ -292,7 +355,17 @@ export default function Attendance() {
     if (!editingRecord) return;
 
     try {
-      await attendanceAPI.updateAttendance(editingRecord._id, editingRecord);
+      if (editingRecord._id) {
+        await attendanceAPI.updateAttendance(editingRecord._id, editingRecord);
+      } else {
+        await attendanceAPI.createAttendance({
+          employeeId: selectedEmployeeId,
+          date: editingRecord.date,
+          status: editingRecord.status,
+          inTime: editingRecord.inTime,
+          outTime: editingRecord.outTime,
+        });
+      }
       
       toast({
         variant: "success",
@@ -311,7 +384,6 @@ export default function Attendance() {
       });
     }
   };
-
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
@@ -333,14 +405,23 @@ export default function Attendance() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="max-w-md ">
+          <div className="max-w-md space-y-2">
             <Label className="mb-2" htmlFor="employee-select">Choose Employee </Label>
+            <Input
+              placeholder="Search employees..."
+              value={employeeFilter}
+              onChange={(e) => setEmployeeFilter(e.target.value)}
+            />
             <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
               <SelectTrigger id="employee-select">
                 <SelectValue placeholder="Select an employee" />
               </SelectTrigger>
               <SelectContent>
-                {employees.map((employee) => (
+                {employees
+                  .filter((employee) =>
+                    employee.displayName?.toString().toLowerCase().includes(employeeFilter.toLowerCase())
+                  )
+                  .map((employee) => (
                   <SelectItem key={employee.id || employee._id} value={(employee.id || employee._id || "").toString()}>
                     <div className="flex flex-col">
                       <span className="font-medium">{employee.displayName}</span>
@@ -350,6 +431,12 @@ export default function Attendance() {
                 ))}
               </SelectContent>
             </Select>
+            {(loadingEmployees) && (
+              <p className="text-sm text-gray-500">Loading employees...</p>
+            )}
+            {errorMessage && (
+              <p className="text-sm text-red-600">{errorMessage}</p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -366,6 +453,17 @@ export default function Attendance() {
                     <p className="text-2xl font-bold text-green-600">{attendanceStats.presentDays}</p>
                   </div>
                   <UserCheck className="h-8 w-8 text-green-400" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Absent</p>
+                    <p className="text-2xl font-bold text-red-600">{attendanceStats.absentDays}</p>
+                  </div>
+                  <XCircle className="h-8 w-8 text-red-400" />
                 </div>
               </CardContent>
             </Card>
@@ -406,7 +504,7 @@ export default function Attendance() {
               </CardContent>
             </Card>
             
-
+            
             
             <Card>
               <CardContent className="p-4">
@@ -464,12 +562,18 @@ export default function Attendance() {
             </CardHeader>
             <CardContent>
               {/* Legend */}
-              <div className="flex flex-wrap gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+              <div className="flex flex-wrap gap-3 mb-3 p-2 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                     <UserCheck className="h-2.5 w-2.5 text-white" />
                   </div>
                   <span className="text-sm font-medium">Present</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                    <XCircle className="h-2.5 w-2.5 text-white" />
+                  </div>
+                  <span className="text-sm font-medium">Absent</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
@@ -490,13 +594,20 @@ export default function Attendance() {
                   <span className="text-sm font-medium">Holiday</span>
                 </div>
 
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-gray-500 rounded-full flex items-center justify-center">
+                    <CalendarIcon className="h-2.5 w-2.5 text-white" />
+                  </div>
+                  <span className="text-sm font-medium">W/O</span>
+                </div>
+
               </div>
 
               {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-0.5">
                 {/* Day headers */}
                 {dayNames.map(day => (
-                  <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
+                  <div key={day} className="p-1 text-center text-[10px] md:text-xs font-medium text-gray-500">
                     {day}
                   </div>
                 ))}
@@ -513,19 +624,33 @@ export default function Attendance() {
                     <div
                       key={index}
                       className={`
-                        aspect-square p-1 border rounded-lg cursor-pointer transition-all duration-200
+                        aspect-square p-0.5 md:p-0.5 border rounded-md cursor-pointer transition-all duration-200
                         ${day ? 'hover:shadow-md' : ''}
                         ${isToday ? 'ring-2 ring-blue-500' : ''}
                         ${attendanceRecord ? getStatusColor(attendanceRecord.status) : 'bg-white hover:bg-gray-50'}
                       `}
                       onClick={() => {
+                        if (!user || user.role !== 'admin' || !day) return;
                         if (attendanceRecord) {
+                          // prevent editing fixed holidays (they carry holidayName from backend)
+                          if (attendanceRecord.status === 'Holiday' && attendanceRecord.holidayName) return;
                           handleEdit(attendanceRecord);
+                        } else {
+                          const dateString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                          setEditingRecord({
+                            _id: "",
+                            employeeId: selectedEmployeeId,
+                            date: dateString,
+                            status: "Absent",
+                            inTime: "",
+                            outTime: "",
+                          } as AttendanceRecord);
+                          setIsEditDialogOpen(true);
                         }
                       }}
                     >
                       {day && (
-                        <div className="flex flex-col items-center justify-center h-full text-sm">
+                        <div className="flex flex-col items-center justify-center h-full text-[10px] md:text-xs">
                           <span className={`font-medium ${attendanceRecord ? 'text-inherit' : 'text-gray-900'}`}>
                             {day}
                           </span>
@@ -533,8 +658,13 @@ export default function Attendance() {
                             <div className="flex items-center gap-1 mt-1">
                               {getStatusIcon(attendanceRecord.status)}
                               {attendanceRecord.inTime && (
-                                <span className="text-xs">
+                                <span className="text-[9px] md:text-[10px]">
                                   {attendanceRecord.inTime.slice(0, 5)}
+                                </span>
+                              )}
+                              {attendanceRecord.status === 'Holiday' && attendanceRecord.holidayName && (
+                                <span className="text-[9px] md:text-[10px] truncate max-w-[60px]">
+                                  {attendanceRecord.holidayName}
                                 </span>
                               )}
                             </div>
@@ -545,6 +675,12 @@ export default function Attendance() {
                   );
                 })}
               </div>
+              {loadingAttendance && (
+                <p className="text-sm text-gray-500 mt-3">Loading attendance...</p>
+              )}
+              {!loadingAttendance && errorMessage && (
+                <p className="text-sm text-red-600 mt-3">{errorMessage}</p>
+              )}
             </CardContent>
           </Card>
         </>
@@ -567,7 +703,7 @@ export default function Attendance() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Attendance Record</DialogTitle>
+            <DialogTitle>{editingRecord?._id ? 'Edit Attendance Record' : 'Create Attendance Record'}</DialogTitle>
           </DialogHeader>
           {editingRecord && (
             <div className="space-y-4">
@@ -589,16 +725,18 @@ export default function Attendance() {
                 <Label>Status</Label>
                 <Select
                   value={editingRecord.status}
-                  onValueChange={(value: "Present" | "Leave" | "WFH" | "Holiday") => setEditingRecord({...editingRecord, status: value})}
+                  onValueChange={(value: "Present" | "Absent" | "Leave" | "WFH" | "Holiday" | "W/O") => setEditingRecord({...editingRecord, status: value})}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Present">Present</SelectItem>
+                    <SelectItem value="Absent">Absent</SelectItem>
                     <SelectItem value="Leave">Leave</SelectItem>
                     <SelectItem value="WFH">WFH</SelectItem>
                     <SelectItem value="Holiday">Holiday</SelectItem>
+                    <SelectItem value="W/O">W/O</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

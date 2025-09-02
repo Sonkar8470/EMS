@@ -23,6 +23,7 @@ interface Employee {
   mobile?: string;
   position?: string;
   address?: string;
+  joiningDate?: string | Date;
 }
 
 export default function EmployeeTable() {
@@ -36,6 +37,7 @@ export default function EmployeeTable() {
     mobile: "",
     position: "",
     address: "",
+    joiningDate: "",
   });
   const [errors, setErrors] = useState<Partial<Record<keyof Employee, string>>>(
     {}
@@ -122,6 +124,11 @@ export default function EmployeeTable() {
       newErrors.address = "Address is required";
       valid = false;
     }
+    // Optional: joiningDate basic validation
+    if (formData.joiningDate && isNaN(Date.parse(String(formData.joiningDate)))) {
+      newErrors.joiningDate = "Invalid date";
+      valid = false;
+    }
 
     // Duplicate check
     const isDuplicate = employees.some(
@@ -156,6 +163,7 @@ export default function EmployeeTable() {
             mobile: "",
             position: "",
             address: "",
+            joiningDate: "",
           });
           setEditingId(null);
           fetchEmployees();
@@ -177,6 +185,9 @@ export default function EmployeeTable() {
       mobile: emp.mobile || "",
       position: emp.position || "",
       address: emp.address || "",
+      joiningDate: emp.joiningDate
+        ? new Date(emp.joiningDate).toISOString().slice(0, 10)
+        : "",
     });
     setEditingId(emp.id || null);
     setErrors({});
@@ -227,6 +238,16 @@ export default function EmployeeTable() {
       return aValue.localeCompare(bValue);
     }
   });
+
+  const formatDate = (value?: string | Date) => {
+    if (!value) return "-";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "-";
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  };
 
   return (
     <div className="p-6">
@@ -282,13 +303,14 @@ export default function EmployeeTable() {
               <th className="px-4 py-2 text-left">Email</th>
               <th className="px-4 py-2 text-left">Position</th>
               <th className="px-4 py-2 text-left">Address</th>
+              <th className="px-4 py-2 text-left">Joining Date</th>
               <th className="px-4 py-2 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
             {sortedEmployees.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-8">
+                <td colSpan={8} className="text-center py-8">
                   <div className="text-gray-500">
                     <p className="text-lg font-medium">No employees found</p>
                     <p className="text-sm mt-1">
@@ -309,6 +331,7 @@ export default function EmployeeTable() {
                   <td className="px-4 py-2">{emp.email}</td>
                   <td className="px-4 py-2">{emp.position || "-"}</td>
                   <td className="px-4 py-2">{emp.address || "-"}</td>
+                  <td className="px-4 py-2">{formatDate(emp.joiningDate)}</td>
                   <td className="px-4 py-2">
                     <div className="flex gap-2">
                       <Button
@@ -405,6 +428,19 @@ export default function EmployeeTable() {
               )}
             </div>
 
+            <div className="grid gap-2">
+              <Label>Joining Date</Label>
+              <Input
+                type="date"
+                name="joiningDate"
+                value={String(formData.joiningDate || "")}
+                onChange={handleChange}
+              />
+              {errors.joiningDate && (
+                <p className="text-red-500 text-sm">{errors.joiningDate}</p>
+              )}
+            </div>
+
             <div className="flex gap-2 pt-4">
               <Button onClick={handleSubmit} className="flex-1">
                 Update Employee
@@ -421,6 +457,7 @@ export default function EmployeeTable() {
                     mobile: "",
                     position: "",
                     address: "",
+                    joiningDate: "",
                   });
                   setErrors({});
                 }}

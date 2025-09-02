@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { authAPI } from '../services/api';
+import { authAPI, getSocket } from '../services/api';
 import { AuthContext, type User} from './AuthContextInstance';
 
 type AuthProviderProps = {
@@ -20,6 +20,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
+        try {
+          const socket = getSocket();
+          const employeeId = parsedUser?.id || parsedUser?._id;
+          if (employeeId) socket.emit('join', { employeeId: String(employeeId) });
+        } catch {}
       } catch (error) {
         console.error('Error parsing user data:', error);
         localStorage.removeItem('user');
@@ -41,6 +46,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
+      try {
+        const socket = getSocket();
+        const employeeId = userData?.id || userData?._id;
+        if (employeeId) socket.emit('join', { employeeId: String(employeeId) });
+      } catch {}
       
       console.log("AuthContext: Login process completed. User:", userData);
     } catch (error) {
