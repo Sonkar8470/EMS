@@ -6,18 +6,18 @@ import {
 } from "@/components/ui/sidebar"
 
 import { Outlet } from "react-router-dom"
-import { useAuth } from "@/contexts/AuthContext"
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'admin' | 'employee';
-  mobile?: string;
-}
+import { useAuth } from "@/hooks/useAuth"
+import { type User } from "@/contexts/AuthContextInstance";
 
 export default function Page() {
   const { user } = useAuth();
+
+  // Transform user to match AppSidebar expectations
+  const transformedUser = user ? {
+    ...user,
+    id: user._id || user.employeeId || "",
+    mobile: user.mobile || ""
+  } : null;
 
   return (
     <SidebarProvider
@@ -28,7 +28,7 @@ export default function Page() {
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" user={user} />
+      <AppSidebar variant="inset" user={transformedUser} />
       <SidebarInset>
         <SiteHeader />
         <Outlet />

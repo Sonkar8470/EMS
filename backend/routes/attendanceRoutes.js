@@ -5,6 +5,91 @@ import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
+// Check-in - MUST come before the general GET route
+router.post("/checkin", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const today = new Date().toISOString().split("T")[0];
+    let record = await Attendance.findOne({ employeeId: userId, date: today });
+    if (record && record.inTime) {
+      return res.status(400).json({ message: "Already checked in" });
+    }
+
+    const { latitude, longitude } = req.body.location;
+
+    if (!record) {
+      record = new Attendance({
+        employeeId: userId,
+        date: today,
+        status: "Present",
+      });
+    }
+    record.inTime = req.body.inTime;
+    record.location = { latitude, longitude };
+
+    await record.save();
+    res.json(record);
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Check-out - MUST come before the general GET route
+router.post("/checkout", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const today = new Date().toISOString().split("T")[0];
+
+    const record = await Attendance.findOne({
+      employeeId: userId,
+      date: today,
+    });
+    if (!record || !record.inTime) {
+      return res.status(400).json({ message: "Please check in first" });
+    }
+    if (record.outTime) {
+      return res.status(400).json({ message: "Already checked out" });
+    }
+
+    const { latitude, longitude } = req.body.location;
+    record.outTime = req.body.outTime;
+    record.location = { latitude, longitude };
+
+    await record.save();
+    res.json(record);
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Get today's attendance of logged-in user
+router.get("/today", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const today = new Date().toISOString().split("T")[0];
+    const record = await Attendance.findOne({
+      employeeId: userId,
+      date: today,
+    });
+    res.json(record || null);
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Get history of logged-in user
+router.get("/history", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const history = await Attendance.find({ employeeId: userId })
+      .sort({ date: -1 })
+      .limit(30);
+    res.json(history);
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // Get attendance records with query parameters (for frontend compatibility)
 router.get("/", authMiddleware, async (req, res) => {
   try {
@@ -49,34 +134,6 @@ router.get("/", authMiddleware, async (req, res) => {
     res.json(recordsWithId);
   } catch (err) {
     console.error("Error fetching attendance:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Get today's attendance of logged-in user
-router.get("/today", authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user._id; // jo login hai uska id
-    const today = new Date().toISOString().split("T")[0];
-    const record = await Attendance.findOne({
-      employeeId: userId,
-      date: today,
-    });
-    res.json(record || null);
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Get history of logged-in user
-router.get("/history", authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const history = await Attendance.find({ employeeId: userId })
-      .sort({ date: -1 })
-      .limit(30);
-    res.json(history);
-  } catch (err) {
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -188,63 +245,6 @@ router.put("/:id", authMiddleware, async (req, res) => {
     res.json(recordWithId);
   } catch (err) {
     console.error("Error updating attendance record:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Check-in
-router.post("/checkin", authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const today = new Date().toISOString().split("T")[0];
-    let record = await Attendance.findOne({ employeeId: userId, date: today });
-    if (record && record.inTime) {
-      return res.status(400).json({ message: "Already checked in" });
-    }
-
-    const { latitude, longitude } = req.body.location;
-
-    if (!record) {
-      record = new Attendance({
-        employeeId: userId,
-        date: today,
-        status: "Present",
-      });
-    }
-    record.inTime = req.body.inTime;
-    record.location = { latitude, longitude };
-
-    await record.save();
-    res.json(record);
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Check-out
-router.post("/checkout", authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const today = new Date().toISOString().split("T")[0];
-
-    const record = await Attendance.findOne({
-      employeeId: userId,
-      date: today,
-    });
-    if (!record || !record.inTime) {
-      return res.status(400).json({ message: "Please check in first" });
-    }
-    if (record.outTime) {
-      return res.status(400).json({ message: "Already checked out" });
-    }
-
-    const { latitude, longitude } = req.body.location;
-    record.outTime = req.body.outTime;
-    record.location = { latitude, longitude };
-
-    await record.save();
-    res.json(record);
-  } catch (err) {
     res.status(500).json({ error: "Server error" });
   }
 });

@@ -14,7 +14,16 @@ import { useState } from "react";
 import ForgotPassword from "./../components/ForgotPassword";
 import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
+
 export function LoginForm({
   className,
   ...props
@@ -62,12 +71,13 @@ export function LoginForm({
           navigate('/dashboard'); // fallback
         }
       }, 100);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
       console.error("Login error:", error);
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: error.response?.data?.message || "Invalid credentials. Please check your email and password.",
+        description: apiError?.response?.data?.message || "Invalid credentials. Please check your email and password.",
       });
     } finally {
       setIsLoading(false);

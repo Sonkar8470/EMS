@@ -9,9 +9,17 @@ import data from "./dashboard/data.json";
 import Attendance from "./components/Attendence";
 import EmployeeDashboard from "./components/Employee/EmployeeDashboard";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AuthProvider } from "./contexts/AuthContext";
+import { type User } from "./contexts/AuthContextInstance";
+import { useAuth } from "./hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import MyAttendanceCalendar from "./components/Employee/MyAttendance";
+import EmployeeAttendance from "./components/Employee/EmployeeAttendance";
+import EmployeeDashboardHome from "./components/Employee/EmployeeDashboardHome";
+import LeaveManagement from "./components/Employee/LeaveManagement";
+import WFH from "./components/Employee/WFH";
+import SalaryStructure from "./components/Employee/SalaryStructure";
+import MyProfile from "./components/Employee/MyProfile";
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -45,8 +53,15 @@ function AppContent() {
               <EmployeeDashboard />
             </ProtectedRoute>
           }
-        />
-        <Route path="/employee-dashboard/attendance" element={<MyAttendanceCalendar />} />
+        >
+          <Route index element={<EmployeeDashboardHome />} />
+          <Route path="attendance" element={<MyAttendanceCalendar />} />
+          <Route path="mark-attendance" element={<EmployeeAttendance />} />
+          <Route path="leaves" element={<LeaveManagement />} />
+          <Route path="wfh" element={<WFH />} />
+          <Route path="salary" element={<SalaryStructure />} />
+          <Route path="profile" element={<MyProfile />} />
+        </Route>
       </Routes>
     </>
   );
@@ -61,7 +76,7 @@ function App() {
 }
 
 // Dashboard content component
-function DashboardContent({ user }: { user: any }) {
+function DashboardContent({ user }: { user: User | null }) {
   if (!user) return <div className="p-4">Loading...</div>;
   return (
     <div className="flex flex-1 flex-col">

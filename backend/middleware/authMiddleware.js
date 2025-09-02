@@ -3,8 +3,13 @@ import User from "../models/user.model.js";
 
 const authMiddleware = async (req, res, next) => {
   try {
-    // Get token from cookie instead of Authorization header
-    const token = req.cookies.token;
+    // Get token from cookie or Authorization header (for compatibility)
+    let token = req.cookies.token;
+    
+    // Fallback to Authorization header if cookie is not present
+    if (!token && req.headers.authorization) {
+      token = req.headers.authorization.replace('Bearer ', '');
+    }
 
     if (!token) {
       return res.status(401).json({ message: "No token, authorization denied" });

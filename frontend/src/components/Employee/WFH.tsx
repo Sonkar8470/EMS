@@ -5,12 +5,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
+import { wfhAPI } from "@/services/api"
+import { useAuth } from "@/hooks/useAuth"
 
-interface WFHProps {
-  employeeId: string;
-}
-
-export default function WFH({ employeeId: _employeeId }: WFHProps) {
+export default function WFH() {
+  const { user } = useAuth();
+  const employeeId = user?._id || "";
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [reason, setReason] = useState("")
@@ -32,8 +32,13 @@ export default function WFH({ employeeId: _employeeId }: WFHProps) {
     setIsSubmitting(true)
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const response = await wfhAPI.requestWFH({
+        employeeId,
+        startDate,
+        endDate,
+        reason,
+        status: "pending"
+      });
       
       toast({
         title: "WFH Request Submitted",
@@ -45,6 +50,7 @@ export default function WFH({ employeeId: _employeeId }: WFHProps) {
       setEndDate("")
       setReason("")
     } catch (error) {
+      console.error("WFH request error:", error);
       toast({
         variant: "destructive",
         title: "Error",
