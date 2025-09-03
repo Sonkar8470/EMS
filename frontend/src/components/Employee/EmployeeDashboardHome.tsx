@@ -43,7 +43,7 @@ export default function EmployeeDashboardHome() {
       <EmployeeCards />
 
       <div className="grid gap-6 md:grid-cols-2">
-        <EmployeeCharts employeeId={employee.id || employee._id || ""} />
+        <EmployeeCharts />
 
         <Card>
           <CardHeader>

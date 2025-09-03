@@ -20,6 +20,7 @@ import LeaveManagement from "./components/Employee/LeaveManagement";
 import WFH from "./components/Employee/WFH";
 import SalaryStructure from "./components/Employee/SalaryStructure";
 import MyProfile from "./components/Employee/MyProfile";
+import CompanyHolidayCalendar from "@/components/CompanyHolidayCalendar";
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -45,6 +46,7 @@ function AppContent() {
           <Route index element={<DashboardContent user={user} />} />
           <Route path="addemployee" element={<EmployeeTable />} />
           <Route path="attendence" element={<Attendance />} />
+          <Route path="company-holidays" element={<CompanyHolidayCalendar />} />
         </Route>
         <Route
           path="/employee-dashboard"
@@ -61,6 +63,7 @@ function AppContent() {
           <Route path="wfh" element={<WFH />} />
           <Route path="salary" element={<SalaryStructure />} />
           <Route path="profile" element={<MyProfile />} />
+          <Route path="company-holidays" element={<CompanyHolidayCalendar />} />
         </Route>
       </Routes>
     </>

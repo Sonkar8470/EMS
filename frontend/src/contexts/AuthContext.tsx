@@ -24,7 +24,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const socket = getSocket();
           const employeeId = parsedUser?.id || parsedUser?._id;
           if (employeeId) socket.emit('join', { employeeId: String(employeeId) });
-        } catch {}
+        } catch {
+          // Socket connection failed, continue without real-time updates
+        }
       } catch (error) {
         console.error('Error parsing user data:', error);
         localStorage.removeItem('user');
@@ -50,7 +52,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const socket = getSocket();
         const employeeId = userData?.id || userData?._id;
         if (employeeId) socket.emit('join', { employeeId: String(employeeId) });
-      } catch {}
+      } catch {
+        // Socket connection failed, continue without real-time updates
+      }
       
       console.log("AuthContext: Login process completed. User:", userData);
     } catch (error) {

@@ -70,7 +70,7 @@ export default function EmployeeAttendance({ employeeId }: { employeeId?: string
   const loadToday = useCallback(async () => {
     if (!userId) return;
     try {
-      const response = await attendanceAPI.getAttendance(userId, today);
+      const response = await attendanceAPI.getAttendance(userId, { date: today });
       const data: AttendanceRecord[] = response.data;
       setTodayRecord(data[0] ?? null);
     } catch (error) {

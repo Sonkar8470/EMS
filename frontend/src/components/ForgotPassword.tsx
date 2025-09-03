@@ -5,11 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 
-interface ForgotPasswordProps {
-  onClose?: () => void;
-}
-
-export default function ForgotPassword({ onClose: _onClose }: ForgotPasswordProps) {
+export default function ForgotPassword() {
   const [email, setEmail] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
@@ -38,7 +34,7 @@ export default function ForgotPassword({ onClose: _onClose }: ForgotPasswordProp
       })
       
       setEmail("")
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Error",

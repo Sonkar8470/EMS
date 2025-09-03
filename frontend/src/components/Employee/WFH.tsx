@@ -32,7 +32,7 @@ export default function WFH() {
     setIsSubmitting(true)
     
     try {
-      const response = await wfhAPI.requestWFH({
+      await wfhAPI.requestWFH({
         employeeId,
         startDate,
         endDate,

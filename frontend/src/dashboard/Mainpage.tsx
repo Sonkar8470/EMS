@@ -7,7 +7,6 @@ import {
 
 import { Outlet } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
-import { type User } from "@/contexts/AuthContextInstance";
 
 export default function Page() {
   const { user } = useAuth();

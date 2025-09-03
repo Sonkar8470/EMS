@@ -3,7 +3,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { attendanceAPI, getSocket } from "@/services/api";
-import { Calendar as CalendarIcon, UserCheck, XCircle, Plane, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  UserCheck,
+  XCircle,
+  Plane,
+  Home,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 type Status = "Present" | "Absent" | "Leave" | "WFH" | "Holiday" | "W/O";
 
@@ -52,7 +60,10 @@ export default function MyAttendanceCalendar({ employeeId }: Props) {
     const m = currentDate.getMonth();
     const start = new Date(y, m, 1);
     const end = new Date(y, m + 1, 0);
-    const toYmd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const toYmd = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate()
+      ).padStart(2, "0")}`;
     return { start: toYmd(start), end: toYmd(end) };
   }, [currentDate]);
 
@@ -69,7 +80,9 @@ export default function MyAttendanceCalendar({ employeeId }: Props) {
         startDate: monthRange.start,
         endDate: monthRange.end,
       });
-      const arr = Array.isArray(resp.data) ? (resp.data as AttendanceRecord[]) : [];
+      const arr = Array.isArray(resp.data)
+        ? (resp.data as AttendanceRecord[])
+        : [];
       const normalized = arr
         .filter((r) => String(r.employeeId) === String(uid))
         .map((r) => ({ ...r, date: String(r.date).slice(0, 10) as string }));
@@ -131,16 +144,22 @@ export default function MyAttendanceCalendar({ employeeId }: Props) {
     const today = new Date();
     let workingDays = 0;
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(d.getDate()).padStart(2, "0")}`;
       const rec = attendance.find((r) => r.date === key);
       const s = rec?.status ? String(rec.status).toLowerCase() : "";
-      const weekend = d.getDay() === 0 || (d.getDay() === 6 && [2, 4].includes(Math.ceil(d.getDate() / 7)));
+      const weekend =
+        d.getDay() === 0 ||
+        (d.getDay() === 6 && [2, 4].includes(Math.ceil(d.getDate() / 7)));
       if (s === "holiday" || weekend) continue;
       if (d > today) continue; // future days not counted
       workingDays += 1;
     }
     const attended = present + wfh;
-    const percentage = workingDays > 0 ? Math.round((attended / workingDays) * 100) : 0;
+    const percentage =
+      workingDays > 0 ? Math.round((attended / workingDays) * 100) : 0;
     setStats({ present, absent, leave, wfh, holiday, percentage });
   }, [attendance, monthRange.start, monthRange.end]);
 
@@ -159,10 +178,16 @@ export default function MyAttendanceCalendar({ employeeId }: Props) {
 
   const getRecordForDay = (day: number | null) => {
     if (!day) return null;
-    const key = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const key = `${currentDate.getFullYear()}-${String(
+      currentDate.getMonth() + 1
+    ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     const rec = attendance.find((r) => r.date === key);
     const today = new Date();
-    const dateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    const dateObj = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      day
+    );
     if (!rec && dateObj > today) return null; // future blanks stay blank
     // Week-off fallback if not present in records and not future
     if (!rec && isWeekOff(dateObj)) {
@@ -251,18 +276,9 @@ export default function MyAttendanceCalendar({ employeeId }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">My Attendance</h1>
-          <p className="text-muted-foreground">Single-month calendar with daily status.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigateMonth("prev")}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="font-medium min-w-[140px] text-center">
-            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-          </span>
-          <Button variant="outline" size="sm" onClick={() => navigateMonth("next")}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <p className="text-muted-foreground">
+            Single-month calendar with daily status.
+          </p>
         </div>
       </div>
 
@@ -273,7 +289,9 @@ export default function MyAttendanceCalendar({ employeeId }: Props) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Present</p>
-                <p className="text-2xl font-bold text-green-600">{stats.present}</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {stats.present}
+                </p>
               </div>
               <UserCheck className="h-8 w-8 text-green-400" />
             </div>
@@ -284,7 +302,9 @@ export default function MyAttendanceCalendar({ employeeId }: Props) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Absent</p>
-                <p className="text-2xl font-bold text-red-600">{stats.absent}</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {stats.absent}
+                </p>
               </div>
               <XCircle className="h-8 w-8 text-red-400" />
             </div>
@@ -295,7 +315,9 @@ export default function MyAttendanceCalendar({ employeeId }: Props) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Leave</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.leave}</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {stats.leave}
+                </p>
               </div>
               <Plane className="h-8 w-8 text-yellow-400" />
             </div>
@@ -317,7 +339,9 @@ export default function MyAttendanceCalendar({ employeeId }: Props) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Holiday</p>
-                <p className="text-2xl font-bold text-purple-600">{stats.holiday}</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {stats.holiday}
+                </p>
               </div>
               <CalendarIcon className="h-8 w-8 text-purple-400" />
             </div>
@@ -327,11 +351,17 @@ export default function MyAttendanceCalendar({ employeeId }: Props) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Attendance %</p>
-                <p className="text-2xl font-bold text-indigo-600">{stats.percentage}%</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Attendance %
+                </p>
+                <p className="text-2xl font-bold text-indigo-600">
+                  {stats.percentage}%
+                </p>
               </div>
               <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                <span className="text-indigo-600 font-bold text-xs">{stats.percentage}</span>
+                <span className="text-indigo-600 font-bold text-xs">
+                  {stats.percentage}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -367,16 +397,38 @@ export default function MyAttendanceCalendar({ employeeId }: Props) {
 
       {/* Calendar */}
       <Card>
-        <CardHeader>
+        <CardHeader >
           <CardTitle className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5" /> Attendance Calendar
           </CardTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateMonth("prev")}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="font-medium min-w-[140px] text-center">
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateMonth("next")}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {/* Headers */}
           <div className="grid grid-cols-7 gap-0.5 mb-1">
             {dayNames.map((d) => (
-              <div key={d} className="p-1 text-center text-[10px] md:text-xs font-medium text-gray-500">
+              <div
+                key={d}
+                className="p-1 text-center text-[10px] md:text-xs font-medium text-gray-500"
+              >
                 {d}
               </div>
             ))}
@@ -388,20 +440,33 @@ export default function MyAttendanceCalendar({ employeeId }: Props) {
               return (
                 <div
                   key={idx}
-                  className={`aspect-square p-0.5 border rounded-md transition-all duration-200 ${rec ? statusColor(rec.status) : "bg-white"}`}
+                  className={`aspect-square p-0.5 border rounded-md transition-all duration-200 ${
+                    rec ? statusColor(rec.status) : "bg-white"
+                  }`}
                 >
                   {d && (
                     <div className="flex flex-col items-center justify-center h-full text-[10px] md:text-xs">
-                      <span className={`font-medium ${rec ? "text-inherit" : "text-gray-900"}`}>{d}</span>
+                      <span
+                        className={`font-medium ${
+                          rec ? "text-inherit" : "text-gray-900"
+                        }`}
+                      >
+                        {d}
+                      </span>
                       {rec && (
                         <div className="flex items-center gap-1 mt-1">
                           {statusIcon(rec.status)}
                           {rec.inTime && (
-                            <span className="text-[9px] md:text-[10px]">{rec.inTime.slice(0, 5)}</span>
+                            <span className="text-[9px] md:text-[10px]">
+                              {rec.inTime.slice(0, 5)}
+                            </span>
                           )}
-                          {String(rec.status).toLowerCase() === "holiday" && rec.holidayName && (
-                            <span className="text-[9px] md:text-[10px] truncate max-w-[60px]">{rec.holidayName}</span>
-                          )}
+                          {String(rec.status).toLowerCase() === "holiday" &&
+                            rec.holidayName && (
+                              <span className="text-[9px] md:text-[10px] truncate max-w-[60px]">
+                                {rec.holidayName}
+                              </span>
+                            )}
                         </div>
                       )}
                     </div>
@@ -410,8 +475,12 @@ export default function MyAttendanceCalendar({ employeeId }: Props) {
               );
             })}
           </div>
-          {loading && <p className="text-sm text-gray-500 mt-3">Loading attendance...</p>}
-          {!loading && error && <p className="text-sm text-red-600 mt-3">{error}</p>}
+          {loading && (
+            <p className="text-sm text-gray-500 mt-3">Loading attendance...</p>
+          )}
+          {!loading && error && (
+            <p className="text-sm text-red-600 mt-3">{error}</p>
+          )}
         </CardContent>
       </Card>
     </div>

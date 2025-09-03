@@ -138,7 +138,7 @@ export function LoginForm({
                       Forgot your password?
                     </a>
                     {showForgot && (
-                      <ForgotPassword onClose={() => setShowForgot(false)} />
+                      <ForgotPassword />
                     )}
                   </div>
                   <div className="relative">

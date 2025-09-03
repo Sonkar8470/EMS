@@ -28,9 +28,9 @@ export default function EmployeeCards() {
       setError(null)
       const response = await dashboardAPI.getEmployeeStats()
       setStats(response.data)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching dashboard stats:", err)
-      setError(err.response?.data?.message || "Failed to fetch stats")
+      setError(err instanceof Error ? err.message : "Failed to fetch stats")
     } finally {
       setLoading(false)
     }
@@ -40,11 +40,11 @@ export default function EmployeeCards() {
     fetchStats()
     try {
       const socket = getSocket()
-      const onAttendance = (data: any) => {
+      const onAttendance = (data: unknown) => {
         console.log("📢 attendanceUpdated event received:", data)
         fetchStats()
       }
-      const onEmployee = (_data: any) => {
+      const onEmployee = () => {
         fetchStats()
       }
       socket.on("attendanceUpdated", onAttendance)
@@ -53,7 +53,9 @@ export default function EmployeeCards() {
         socket.off("attendanceUpdated", onAttendance)
         socket.off("employeeUpdated", onEmployee)
       }
-    } catch {}
+    } catch {
+      // Socket connection failed, continue without real-time updates
+    }
 
     // Auto-refresh every 30 seconds
     const interval = setInterval(fetchStats, 30000)

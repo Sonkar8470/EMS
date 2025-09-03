@@ -19,11 +19,7 @@ const chartConfig = {
   },
 }
 
-interface EmployeeChartsProps {
-  employeeId: string
-}
-
-export default function EmployeeCharts({ employeeId: _employeeId }: EmployeeChartsProps) {
+export default function EmployeeCharts() {
   return (
     <Card>
       <CardHeader>

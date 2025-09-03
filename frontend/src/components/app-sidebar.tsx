@@ -66,6 +66,11 @@ const getNavItems = (user: User | null) => {
           icon: IconFolder,
         },
         {
+          title: "Company Holidays",
+          url: "/dashboard/company-holidays",
+          icon: IconCalendar,
+        },
+        {
           title: "Team",
           url: "#",
           icon: IconUsers,
@@ -171,6 +176,11 @@ const getNavItems = (user: User | null) => {
         {
           title: "My Attendance",
           url: "/employee-dashboard/attendance",
+          icon: IconCalendar,
+        },
+        {
+          title: "Company Holidays",
+          url: "/employee-dashboard/company-holidays",
           icon: IconCalendar,
         },
 
