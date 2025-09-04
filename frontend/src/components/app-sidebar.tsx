@@ -66,6 +66,11 @@ const getNavItems = (user: User | null) => {
           icon: IconFolder,
         },
         {
+          title: "Applications",
+          url: "/dashboard/applications",
+          icon: IconFiles,
+        },
+        {
           title: "Company Holidays",
           url: "/dashboard/company-holidays",
           icon: IconCalendar,

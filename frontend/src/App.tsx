@@ -21,6 +21,7 @@ import WFH from "./components/Employee/WFH";
 import SalaryStructure from "./components/Employee/SalaryStructure";
 import MyProfile from "./components/Employee/MyProfile";
 import CompanyHolidayCalendar from "@/components/CompanyHolidayCalendar";
+import AdminApplications from "@/components/Employee/AdminApplications";
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -47,6 +48,7 @@ function AppContent() {
           <Route path="addemployee" element={<EmployeeTable />} />
           <Route path="attendence" element={<Attendance />} />
           <Route path="company-holidays" element={<CompanyHolidayCalendar />} />
+          <Route path="applications" element={<AdminApplications />} />
         </Route>
         <Route
           path="/employee-dashboard"

@@ -99,6 +99,22 @@ export const wfhAPI = {
   deleteWFHRequest: (id: string) => api.delete(`/wfh/${id}`),
 };
 
+// Unified Leave/WFH API endpoints
+export const leaveAPI = {
+  applyLeave: (data: { startDate: string; endDate: string; reason: string }) =>
+    api.post("/leaves/apply-leave", data),
+  applyWFH: (data: { startDate: string; endDate: string; reason: string }) =>
+    api.post("/leaves/apply-wfh", data),
+  myLeaves: () => api.get("/leaves/my-leaves"),
+  myWFH: () => api.get("/leaves/my-wfh"),
+  adminAllLeaves: () => api.get("/leaves/admin/leave"),
+  adminAllWFH: () => api.get("/leaves/admin/wfh"),
+  adminUpdateLeaveStatus: (id: string, status: "approved" | "rejected") =>
+    api.put(`/leaves/admin/leave/${id}`, { status }),
+  adminUpdateWFHStatus: (id: string, status: "approved" | "rejected") =>
+    api.put(`/leaves/admin/wfh/${id}`, { status }),
+};
+
 // Dashboard API endpoints
 export const dashboardAPI = {
   getEmployeeStats: () => api.get("/dashboard/employee-stats"),

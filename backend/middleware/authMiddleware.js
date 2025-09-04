@@ -12,22 +12,28 @@ const authMiddleware = async (req, res, next) => {
     }
 
     if (!token) {
+      console.warn("[authMiddleware] No token found in cookies or Authorization header");
       return res.status(401).json({ message: "No token, authorization denied" });
     }
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded?.id) {
+      console.warn("[authMiddleware] Token decoded without id");
+      return res.status(401).json({ message: "Token invalid" });
+    }
 
     // User fetch
     req.user = await User.findById(decoded.id).select("-password");
 
     if (!req.user) {
+      console.warn("[authMiddleware] User not found for token id:", decoded.id);
       return res.status(404).json({ message: "User not found" });
     }
 
     next();
   } catch (error) {
-    console.error(error);
+    console.error("[authMiddleware] error:", error?.message || error);
     
     // Try refresh token if access token is expired
     if (error.name === "TokenExpiredError" && req.cookies.refreshToken) {
@@ -62,7 +68,7 @@ const authMiddleware = async (req, res, next) => {
         req.user = user;
         return next();
       } catch (refreshError) {
-        console.error("Refresh token error:", refreshError);
+        console.error("[authMiddleware] Refresh token error:", refreshError?.message || refreshError);
         return res.status(401).json({ message: "Session expired, please login again" });
       }
     }

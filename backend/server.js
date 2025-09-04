@@ -15,6 +15,7 @@ import userRoutes from "./routes/userRoutes.js";
 import authRoutes from "./routes/userRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
 import wfhRoutes from "./routes/wfhRoutes.js";
+import leaveRoutes from "./routes/leave.routes.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import holidaysRoutes from "./routes/holidays.js";
 
@@ -82,10 +83,56 @@ app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/attendances", attendanceRoutes);
 app.use("/api/wfh", wfhRoutes);
+app.use("/api/leaves", leaveRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/holidays", holidaysRoutes);
 
 app.get("/", (_req, res) => res.send("API is up ✅"));
+
+// 404 handler with logging to help debug missing routes
+app.use((req, res, _next) => {
+  console.warn("[404]", req.method, req.originalUrl);
+  res.status(404).json({ message: "Route not found", method: req.method, path: req.originalUrl });
+});
+
+// ---------------------------
+// Log registered routes at startup
+// ---------------------------
+const logRoutes = () => {
+  try {
+    const routes = [];
+    app._router?.stack?.forEach?.((m) => {
+      if (m.route && m.route.path) {
+        const methods = Object.keys(m.route.methods)
+          .filter((k) => m.route.methods[k])
+          .map((k) => k.toUpperCase())
+          .join(",");
+        routes.push(`${methods} ${m.route.path}`);
+      } else if (m.name === 'router' && m.handle?.stack) {
+        const base = m.regexp?.source
+          ?.replace('^\\', '/')
+          ?.replace('(?:', '')
+          ?.replace('(?=\\/|$)', '')
+          ?.replace('\\/?$', '')
+          ?.replace('\\/', '/') || '';
+        m.handle.stack.forEach((h) => {
+          if (h.route && h.route.path) {
+            const methods = Object.keys(h.route.methods)
+              .filter((k) => h.route.methods[k])
+              .map((k) => k.toUpperCase())
+              .join(",");
+            routes.push(`${methods} ${base}${h.route.path}`);
+          }
+        });
+      }
+    });
+    console.log("\nRegistered routes:\n" + routes.sort().join('\n'));
+  } catch (e) {
+    console.warn("Failed to list routes:", e?.message || e);
+  }
+};
+
+logRoutes();
 
 // ---------------------------
 // 🔔 Auto Checkout Cron Job - REMOVED

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const wfhSchema = new mongoose.Schema(
+const leaveSchema = new mongoose.Schema(
   {
     employeeId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -32,5 +32,6 @@ const wfhSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const WFH = mongoose.model("WFH", wfhSchema);
-export default WFH;
+const Leave = mongoose.model("Leave", leaveSchema);
+export default Leave;
+
