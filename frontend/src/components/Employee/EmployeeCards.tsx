@@ -1,26 +1,26 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { IconCalendar, IconHome, IconUser, IconClock } from "@tabler/icons-react"
-import { dashboardAPI, getSocket } from "@/services/api"
+import { IconCalendar, IconHome, IconUser } from "@tabler/icons-react"
+import { dashboardAPI, getSocket, holidaysAPI } from "@/services/api"
 import { useAuth } from "@/hooks/useAuth"
 
 interface DashboardStats {
   presentDays: number
   leaveDays: number
   wfhDays: number
-  avgHours: number
 }
+type UpcomingHoliday = { id: string; date: string; holidayName: string; day?: string }
 
 export default function EmployeeCards() {
   const { user } = useAuth()
   const [stats, setStats] = useState<DashboardStats>({
     presentDays: 0,
     leaveDays: 0,
-    wfhDays: 0,
-    avgHours: 0
+    wfhDays: 0
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [holidays, setHolidays] = useState<UpcomingHoliday[]>([])
 
   const fetchStats = async () => {
     try {
@@ -28,6 +28,15 @@ export default function EmployeeCards() {
       setError(null)
       const response = await dashboardAPI.getEmployeeStats()
       setStats(response.data)
+      // Fetch upcoming holidays
+      const { data: up } = await holidaysAPI.upcoming(3)
+      const normalized: UpcomingHoliday[] = (up || []).map((h: any) => ({
+        id: h.id,
+        date: typeof h.date === "string" ? h.date : new Date(h.date).toISOString(),
+        holidayName: h.holidayName,
+        day: h.day,
+      }))
+      setHolidays(normalized)
     } catch (err: unknown) {
       console.error("Error fetching dashboard stats:", err)
       setError(err instanceof Error ? err.message : "Failed to fetch stats")
@@ -133,12 +142,21 @@ export default function EmployeeCards() {
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Avg. Hours</CardTitle>
-          <IconClock className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Upcoming Holidays</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.avgHours}</div>
-          <p className="text-xs text-muted-foreground">Per day</p>
+          {holidays.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No upcoming holidays</div>
+          ) : (
+            <ul className="text-sm space-y-1">
+              {holidays.map(h => (
+                <li key={h.id} className="flex items-center justify-between">
+                  <span>{h.holidayName}</span>
+                  <span className="text-muted-foreground">{new Date(h.date).toLocaleDateString()}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
     </div>

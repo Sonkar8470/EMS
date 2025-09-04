@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { leaveAPI } from "@/services/api"
+import { leaveAPI, getSocket } from "@/services/api"
 import { useAuth } from "@/hooks/useAuth"
 import type { AxiosError } from "axios"
 
@@ -47,6 +47,12 @@ export default function WFH() {
 
   useEffect(() => {
     load()
+    const socket = getSocket()
+    const onWFHUpdated = () => load()
+    socket.on("wfhUpdated", onWFHUpdated)
+    return () => {
+      socket.off("wfhUpdated", onWFHUpdated)
+    }
   }, [load])
 
   const handleSubmit = async (e: React.FormEvent) => {

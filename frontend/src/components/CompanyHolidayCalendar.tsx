@@ -359,14 +359,27 @@ export default function CompanyHolidayCalendar({ className, onChanged }: Props) 
               {editingDate && holidays[editingDate] && (
                 <Button
                   variant="outline"
-                  onClick={() => {
+                  onClick={async () => {
                     const dateKey = editingDate;
-                    setHolidays((prev) => {
-                      const next = { ...prev } as Record<string, HolidayItem>;
-                      delete next[dateKey];
-                      return next;
-                    });
-                    setIsEditOpen(false);
+                    const existing = holidays[dateKey];
+                    try {
+                      // If we have an id from backend, use API to unmark
+                      if (existing?.id || existing?._id) {
+                        const id = String(existing.id || existing._id);
+                        await holidaysAPI.unmark(id);
+                      }
+                    } catch (e) {
+                      console.error("Failed to unmark holiday", e);
+                    } finally {
+                      // Update local state and refresh from server
+                      setHolidays((prev) => {
+                        const next = { ...prev } as Record<string, HolidayItem>;
+                        delete next[dateKey];
+                        return next;
+                      });
+                      setIsEditOpen(false);
+                      await fetchHolidays();
+                    }
                   }}
                 >
                   Unmark

@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import EmployeeCards from "@/components/Employee/EmployeeCards";
 import EmployeeCharts from "@/components/Employee/EmployeeCharts";
+import AnnouncementsPanel from "@/components/announcements/AnnouncementsPanel";
 
 interface User {
   id?: string;
@@ -84,6 +85,7 @@ export default function EmployeeDashboardHome() {
             </Button>
           </CardContent>
         </Card>
+        <AnnouncementsPanel variant="employee" />
       </div>
     </div>
   );

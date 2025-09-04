@@ -119,6 +119,8 @@ export const leaveAPI = {
 export const dashboardAPI = {
   getEmployeeStats: () => api.get("/dashboard/employee-stats"),
   getOverallStats: () => api.get("/dashboard/overall-stats"),
+  getAdminSummary: () => api.get("/dashboard/admin-summary"),
+  getPerformance: () => api.get("/dashboard/performance"),
 };
 
 // User API endpoints
@@ -137,6 +139,8 @@ export const userAPI = {
 // Holidays API endpoints
 export const holidaysAPI = {
   list: () => api.get("/holidays"),
+  upcoming: (limit = 3) => api.get("/holidays/upcoming", { params: { limit } }),
+  unmark: (id: string) => api.delete(`/holidays/${id}`),
   seed: (
     data: Array<{
       date: string;
@@ -145,6 +149,18 @@ export const holidaysAPI = {
       applicable?: boolean;
     }>
   ) => api.post("/holidays/seed", data),
+};
+
+// Announcements API endpoints
+export const announcementsAPI = {
+  list: () => api.get("/announcements"),
+  create: (data: { title: string; message: string; pinned?: boolean; startsAt?: string; endsAt?: string }) =>
+    api.post("/announcements", data),
+  update: (
+    id: string,
+    data: Partial<{ title: string; message: string; pinned: boolean; startsAt: string | null; endsAt: string | null }>
+  ) => api.put(`/announcements/${id}`, data),
+  remove: (id: string) => api.delete(`/announcements/${id}`),
 };
 
 export default api;

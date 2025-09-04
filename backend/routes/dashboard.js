@@ -2,6 +2,9 @@ import express from "express";
 import authMiddleware from "../middleware/authMiddleware.js";
 import Attendance from "../models/attendance.model.js";
 import WFH from "../models/wfh.model.js";
+import Leave from "../models/leave.model.js";
+import User from "../models/user.model.js";
+import Holiday from "../models/holiday.model.js";
 
 const router = express.Router();
 
@@ -168,3 +171,186 @@ router.get("/overall-stats", authMiddleware, async (req, res) => {
 });
 
 export default router;
+
+// ---------------------------
+// Admin Summary: quick stats and leave-today list
+// ---------------------------
+router.get("/admin-summary", authMiddleware, async (req, res) => {
+  try {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Access denied. Admin role required." });
+
+    const now = new Date();
+    const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const endOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+
+    const [totalEmployees, presentToday, pendingLeaveRequests, upcomingHolidayDoc, upcomingLeaves, upcomingWFH] = await Promise.all([
+      User.countDocuments({ role: "employee" }),
+      Attendance.countDocuments({ date: { $gte: startOfToday, $lt: endOfToday }, status: "Present" }),
+      Leave.countDocuments({ status: "pending" }),
+      Holiday.findOne({ date: { $gte: startOfToday } }).sort({ date: 1 }),
+      // All approved leaves whose endDate has not passed yet (ongoing or future)
+      Leave.find({ status: "approved", endDate: { $gte: startOfToday } })
+        .populate({ path: "employeeId", select: "name email employeeId role position" })
+        .sort({ startDate: 1 }),
+      // All approved WFH whose endDate has not passed yet (ongoing or future)
+      WFH.find({ status: "approved", endDate: { $gte: startOfToday } })
+        .populate({ path: "employeeId", select: "name email employeeId role position" })
+        .sort({ startDate: 1 })
+    ]);
+
+    const ongoingOrUpcoming = [
+      ...upcomingLeaves.map((doc) => ({
+        _id: doc._id,
+        type: "leave",
+        employeeId: doc.employeeId,
+        startDate: doc.startDate,
+        endDate: doc.endDate,
+        reason: doc.reason,
+      })),
+      ...upcomingWFH.map((doc) => ({
+        _id: doc._id,
+        type: "wfh",
+        employeeId: doc.employeeId,
+        startDate: doc.startDate,
+        endDate: doc.endDate,
+        reason: doc.reason,
+      })),
+    ].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+    res.json({
+      stats: {
+        totalEmployees,
+        presentToday,
+        pendingLeaveRequests,
+        upcomingHoliday: upcomingHolidayDoc
+          ? {
+              date: upcomingHolidayDoc.date,
+              holidayName: upcomingHolidayDoc.holidayName,
+            }
+          : null,
+      },
+      ongoingOrUpcoming,
+    });
+  } catch (e) {
+    console.error("/admin-summary error", e);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ---------------------------
+// Admin Performance: per-employee aggregates for current month
+// ---------------------------
+router.get("/performance", authMiddleware, async (req, res) => {
+  try {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Access denied. Admin role required." });
+
+    const now = new Date();
+    const monthStartUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const nextMonthStartUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+
+    // Aggregate attendance by employee for current month
+    const attendanceAgg = await Attendance.aggregate([
+      {
+        $match: {
+          date: { $gte: monthStartUtc, $lt: nextMonthStartUtc },
+        },
+      },
+      {
+        $group: {
+          _id: "$employeeId",
+          totalAttendanceDays: { $sum: 1 },
+          presentDays: { $sum: { $cond: [{ $eq: ["$status", "Present"] }, 1, 0] } },
+          leaveDaysFromAttendance: { $sum: { $cond: [{ $eq: ["$status", "Leave"] }, 1, 0] } },
+          wfhDaysFromAttendance: { $sum: { $cond: [{ $eq: ["$status", "WFH"] }, 1, 0] } },
+        },
+      },
+    ]);
+
+    // Leaves in month (by overlap with month window)
+    const leavesAgg = await Leave.aggregate([
+      {
+        $match: {
+          status: "approved",
+          endDate: { $gte: monthStartUtc },
+          startDate: { $lt: nextMonthStartUtc },
+        },
+      },
+      {
+        $project: {
+          employeeId: 1,
+          // approximate days in month window
+          days: {
+            $add: [
+              1,
+              {
+                $dateDiff: {
+                  startDate: { $cond: [{ $gt: ["$startDate", monthStartUtc] }, "$startDate", monthStartUtc] },
+                  endDate: { $cond: [{ $lt: ["$endDate", nextMonthStartUtc] }, "$endDate", nextMonthStartUtc] },
+                  unit: "day",
+                },
+              },
+            ],
+          },
+        },
+      },
+      { $group: { _id: "$employeeId", totalLeaveDays: { $sum: "$days" } } },
+    ]);
+
+    // WFH in month (by overlap with month window)
+    const wfhAgg = await WFH.aggregate([
+      {
+        $match: {
+          status: "approved",
+          endDate: { $gte: monthStartUtc },
+          startDate: { $lt: nextMonthStartUtc },
+        },
+      },
+      {
+        $project: {
+          employeeId: 1,
+          days: {
+            $add: [
+              1,
+              {
+                $dateDiff: {
+                  startDate: { $cond: [{ $gt: ["$startDate", monthStartUtc] }, "$startDate", monthStartUtc] },
+                  endDate: { $cond: [{ $lt: ["$endDate", nextMonthStartUtc] }, "$endDate", nextMonthStartUtc] },
+                  unit: "day",
+                },
+              },
+            ],
+          },
+        },
+      },
+      { $group: { _id: "$employeeId", totalWFHDays: { $sum: "$days" } } },
+    ]);
+
+    // Index by employeeId
+    const attendanceByEmp = new Map(attendanceAgg.map((a) => [String(a._id), a]));
+    const leavesByEmp = new Map(leavesAgg.map((l) => [String(l._id), l]));
+    const wfhByEmp = new Map(wfhAgg.map((w) => [String(w._id), w]));
+
+    // Build list for all employees (role employee)
+    const employees = await User.find({ role: "employee" }).select("name position role");
+
+    const rows = employees.map((u) => {
+      const key = String(u._id);
+      const att = attendanceByEmp.get(key);
+      const leave = leavesByEmp.get(key);
+      const wfh = wfhByEmp.get(key);
+      return {
+        employeeId: key,
+        name: u.name,
+        role: u.position || u.role || "",
+        totalAttendanceDays: att?.totalAttendanceDays || 0,
+        totalLeavesTaken: leave?.totalLeaveDays || att?.leaveDaysFromAttendance || 0,
+        totalWFHDays: wfh?.totalWFHDays || att?.wfhDaysFromAttendance || 0,
+      };
+    });
+
+    res.json({ monthStart: monthStartUtc, rows });
+  } catch (e) {
+    console.error("/performance error", e);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});

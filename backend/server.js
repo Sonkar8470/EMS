@@ -18,6 +18,7 @@ import wfhRoutes from "./routes/wfhRoutes.js";
 import leaveRoutes from "./routes/leave.routes.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import holidaysRoutes from "./routes/holidays.js";
+import announcementsRoutes from "./routes/announcements.js";
 
 dotenv.config({ path: "config.env" });
 
@@ -86,6 +87,7 @@ app.use("/api/wfh", wfhRoutes);
 app.use("/api/leaves", leaveRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/holidays", holidaysRoutes);
+app.use("/api/announcements", announcementsRoutes);
 
 app.get("/", (_req, res) => res.send("API is up ✅"));
 

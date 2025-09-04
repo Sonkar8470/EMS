@@ -7,6 +7,7 @@ import {
 
 import { Outlet } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
+// removed unused AdminDashboardHome import
 
 export default function Page() {
   const { user } = useAuth();
@@ -31,6 +32,7 @@ export default function Page() {
       <SidebarInset>
         <SiteHeader />
         <Outlet />
+        {/* If used as index route, render AdminDashboardHome there */}
       </SidebarInset>
     </SidebarProvider>
   )

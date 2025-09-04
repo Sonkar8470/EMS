@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { leaveAPI } from "@/services/api";
+import { leaveAPI, getSocket } from "@/services/api";
 import type { AxiosError } from "axios";
 
 export default function LeaveManagement() {
@@ -48,6 +48,12 @@ export default function LeaveManagement() {
 
   useEffect(() => {
     loadLeaves();
+    const socket = getSocket();
+    const onLeaveUpdated = () => loadLeaves();
+    socket.on("leaveUpdated", onLeaveUpdated);
+    return () => {
+      socket.off("leaveUpdated", onLeaveUpdated);
+    };
   }, [loadLeaves]);
 
   const handleSubmit = async (e: React.FormEvent) => {

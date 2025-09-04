@@ -23,6 +23,29 @@ router.get("/", authMiddleware, async (_req, res) => {
   }
 });
 
+// GET /holidays/upcoming -> next N upcoming holidays (default 3)
+router.get("/upcoming", authMiddleware, async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(10, parseInt(String(req.query.limit || "3"), 10) || 3));
+    const now = new Date();
+    const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const holidays = await Holiday.find({ applicable: true, date: { $gte: startOfToday } })
+      .sort({ date: 1 })
+      .limit(limit);
+    res.json(
+      holidays.map((h) => ({
+        id: h._id,
+        date: h.date,
+        holidayName: h.holidayName,
+        day: h.day,
+      }))
+    );
+  } catch (err) {
+    console.error("Error fetching upcoming holidays:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // POST /holidays/seed -> admin can insert predefined holiday JSON for 2025
 router.post("/seed", authMiddleware, async (req, res) => {
   try {
@@ -69,4 +92,23 @@ router.post("/seed", authMiddleware, async (req, res) => {
 
 export default router;
 
-
+// DELETE /holidays/:id -> mark holiday as not applicable (unmark)
+router.delete("/:id", authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    const { id } = req.params;
+    // Set applicable=false instead of deleting
+    const doc = await Holiday.findByIdAndUpdate(id, { $set: { applicable: false } }, { new: true });
+    if (!doc) return res.status(404).json({ message: "Not found" });
+    try {
+      const io = req.app.get("io");
+      if (io) io.emit("holidayUpdated");
+    } catch {}
+    res.json({ message: "Holiday unmarked", id });
+  } catch (err) {
+    console.error("Error unmarking holiday:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});

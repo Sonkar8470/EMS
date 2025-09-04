@@ -147,6 +147,13 @@ export const updateLeaveStatus = async (req, res) => {
     updated.history.push({ action: status, adminId: req.user?._id, date: new Date() });
     await updated.save();
     await updated.populate({ path: "history.adminId", select: "name email employeeId" });
+    try {
+      const io = req.app.get("io");
+      if (io) {
+        const employeeRoom = String(updated.employeeId);
+        io.to(employeeRoom).emit("leaveUpdated", { _id: String(updated._id), status: updated.status });
+      }
+    } catch {}
     res.json({ message: "Leave status updated", leave: updated });
   } catch (err) {
     console.error("updateLeaveStatus error:", err);
@@ -172,6 +179,13 @@ export const updateWFHStatus = async (req, res) => {
     updated.history.push({ action: status, adminId: req.user?._id, date: new Date() });
     await updated.save();
     await updated.populate({ path: "history.adminId", select: "name email employeeId" });
+    try {
+      const io = req.app.get("io");
+      if (io) {
+        const employeeRoom = String(updated.employeeId);
+        io.to(employeeRoom).emit("wfhUpdated", { _id: String(updated._id), status: updated.status });
+      }
+    } catch {}
     res.json({ message: "WFH status updated", wfh: updated });
   } catch (err) {
     console.error("updateWFHStatus error:", err);
