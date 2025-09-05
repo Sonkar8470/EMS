@@ -31,28 +31,28 @@ export default function EmployeeDashboardHome() {
   const employee = user as User;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-xl sm:text-3xl font-bold">
           Welcome back, {employee.name}!
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground text-sm sm:text-base">
           Here's what's happening with your account today.
         </p>
       </div>
 
       <EmployeeCards />
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         <EmployeeCharts />
 
         <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+          <CardHeader className="px-3 sm:px-6 py-3 sm:py-6">
+            <CardTitle className="text-base sm:text-lg">Quick Actions</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6 space-y-2 sm:space-y-3">
             <Button
-              className="w-full justify-start"
+              className="w-full justify-start h-11 sm:h-10 text-sm sm:text-base"
               variant="outline"
               onClick={() => navigate("/employee-dashboard/mark-attendance")}
             >
@@ -60,7 +60,7 @@ export default function EmployeeDashboardHome() {
               Mark my Attendance
             </Button>
             <Button
-              className="w-full justify-start"
+              className="w-full justify-start h-11 sm:h-10 text-sm sm:text-base"
               variant="outline"
               onClick={() => navigate("/employee-dashboard/wfh")}
             >
@@ -68,7 +68,7 @@ export default function EmployeeDashboardHome() {
               Request WFH
             </Button>
             <Button
-              className="w-full justify-start"
+              className="w-full justify-start h-11 sm:h-10 text-sm sm:text-base"
               variant="outline"
               onClick={() => navigate("/employee-dashboard/leaves")}
             >
@@ -76,7 +76,7 @@ export default function EmployeeDashboardHome() {
               Apply Leave
             </Button>
             <Button
-              className="w-full justify-start"
+              className="w-full justify-start h-11 sm:h-10 text-sm sm:text-base"
               variant="outline"
               onClick={() => navigate("/employee-dashboard/salary")}
             >

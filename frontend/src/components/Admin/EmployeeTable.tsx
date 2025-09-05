@@ -3,6 +3,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -82,22 +83,6 @@ export default function EmployeeTable() {
     setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
   };
 
-  // Handle assigning employee IDs to existing users
-  const handleAssignEmployeeIds = async () => {
-    try {
-      const response = await userAPI.assignEmployeeIds();
-      console.log("Employee IDs assigned:", response.data);
-      
-      // Refresh the employee list to show new IDs
-      await fetchEmployees();
-      
-      // Show success message (you can add toast notification here)
-      alert(`Successfully assigned employee IDs to ${response.data.assignedCount} employees`);
-    } catch (err) {
-      console.error("Error assigning employee IDs:", err);
-      alert("Error assigning employee IDs. Please try again.");
-    }
-  };
 
   // Validation function
   const validateForm = () => {
@@ -250,28 +235,28 @@ export default function EmployeeTable() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-2 sm:p-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 gap-3">
         <div>
-          <h2 className="text-xl font-semibold">Employee List</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <h2 className="text-lg sm:text-xl font-semibold">Employee List</h2>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">
             Showing users with role: "employee" ({employees.length} employees)
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Search Bar */}
           <Input
             placeholder="Search employees..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-[200px]"
+            className="w-full sm:w-[200px] h-10 sm:h-9 text-sm"
           />
 
           {/* Sorting Dropdown */}
           <Select value={sortKey} onValueChange={(value) => setSortKey(value)}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full sm:w-[160px] h-10 sm:h-9 text-sm">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -281,19 +266,65 @@ export default function EmployeeTable() {
             </SelectContent>
           </Select>
 
-          {/* Assign Employee IDs Button */}
-          <Button
-            onClick={handleAssignEmployeeIds}
-            variant="outline"
-            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
-          >
-            Assign Employee IDs
-          </Button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="border rounded-md overflow-x-auto">
+      {/* Mobile Cards View */}
+      <div className="block sm:hidden space-y-3">
+        {sortedEmployees.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="text-gray-500">
+              <p className="text-base font-medium">No employees found</p>
+              <p className="text-xs mt-1">
+                {searchQuery 
+                  ? "Try adjusting your search criteria" 
+                  : "No users with role 'employee' exist in the database"
+                }
+              </p>
+            </div>
+          </div>
+        ) : (
+          sortedEmployees.map((emp) => (
+            <Card key={emp.id || emp._id} className="p-3">
+              <div className="space-y-2">
+                <div className="flex justify-between items-start">
+                  <div className="font-medium text-sm">{emp.name}</div>
+                  <div className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                    {emp.employeeId || "Pending"}
+                  </div>
+                </div>
+                <div className="text-xs text-gray-600 space-y-1">
+                  <div>📧 {emp.email}</div>
+                  <div>📱 {emp.mobile || "-"}</div>
+                  <div>💼 {emp.position || "-"}</div>
+                  <div>📅 Joined: {formatDate(emp.joiningDate)}</div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEdit(emp)}
+                    className="flex-1 h-8 text-xs"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDelete(emp.id)}
+                    className="flex-1 h-8 text-xs"
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden sm:block border rounded-md overflow-x-auto">
         <table className="w-full table-auto">
           <thead className="bg-gray-100">
             <tr>
@@ -324,8 +355,8 @@ export default function EmployeeTable() {
               </tr>
             ) : (
               sortedEmployees.map((emp) => (
-                                 <tr key={emp.id || emp._id} className="border-t hover:bg-gray-50">
-                   <td className="px-4 py-2 font-medium">{emp.employeeId || "Pending"}</td>
+                <tr key={emp.id || emp._id} className="border-t hover:bg-gray-50">
+                  <td className="px-4 py-2 font-medium">{emp.employeeId || "Pending"}</td>
                   <td className="px-4 py-2">{emp.name}</td>
                   <td className="px-4 py-2">{emp.mobile || "-"}</td>
                   <td className="px-4 py-2">{emp.email}</td>
@@ -359,24 +390,25 @@ export default function EmployeeTable() {
 
       {/* Edit Dialog (No Add functionality) */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-sm sm:max-w-md mx-auto">
           <div className="grid gap-4">
-            <div className="text-lg font-semibold">Edit Employee</div>
+            <div className="text-base sm:text-lg font-semibold">Edit Employee</div>
             
             <div className="grid gap-2">
-              <Label>Name</Label>
+              <Label className="text-sm">Name</Label>
               <Input
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
+                className="h-10 sm:h-9 text-sm"
               />
               {errors.name && (
-                <p className="text-red-500 text-sm">{errors.name}</p>
+                <p className="text-red-500 text-xs sm:text-sm">{errors.name}</p>
               )}
             </div>
             
             <div className="grid gap-2">
-              <Label>Mobile</Label>
+              <Label className="text-sm">Mobile</Label>
               <Input
                 type="tel"
                 name="mobile"
@@ -385,64 +417,69 @@ export default function EmployeeTable() {
                 pattern="\d{10}"
                 maxLength={10}
                 placeholder="10-digit mobile number"
+                className="h-10 sm:h-9 text-sm"
               />
               {errors.mobile && (
-                <p className="text-red-500 text-sm">{errors.mobile}</p>
+                <p className="text-red-500 text-xs sm:text-sm">{errors.mobile}</p>
               )}
             </div>
             
             <div className="grid gap-2">
-              <Label>Email</Label>
+              <Label className="text-sm">Email</Label>
               <Input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
+                className="h-10 sm:h-9 text-sm"
               />
               {errors.email && (
-                <p className="text-red-500 text-sm">{errors.email}</p>
+                <p className="text-red-500 text-xs sm:text-sm">{errors.email}</p>
               )}
             </div>
             
             <div className="grid gap-2">
-              <Label>Position</Label>
+              <Label className="text-sm">Position</Label>
               <Input
                 name="position"
                 value={formData.position}
                 onChange={handleChange}
+                className="h-10 sm:h-9 text-sm"
               />
               {errors.position && (
-                <p className="text-red-500 text-sm">{errors.position}</p>
+                <p className="text-red-500 text-xs sm:text-sm">{errors.position}</p>
               )}
             </div>
             
             <div className="grid gap-2">
-              <Label>Address</Label>
+              <Label className="text-sm">Address</Label>
               <Input
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
+                className="h-10 sm:h-9 text-sm"
               />
               {errors.address && (
-                <p className="text-red-500 text-sm">{errors.address}</p>
+                <p className="text-red-500 text-xs sm:text-sm">{errors.address}</p>
               )}
             </div>
 
             <div className="grid gap-2">
-              <Label>Joining Date</Label>
+              <Label className="text-sm">Joining Date</Label>
               <Input
                 type="date"
                 name="joiningDate"
                 value={String(formData.joiningDate || "")}
                 onChange={handleChange}
+                className="h-10 sm:h-9 text-sm"
               />
               {errors.joiningDate && (
-                <p className="text-red-500 text-sm">{errors.joiningDate}</p>
+                <p className="text-red-500 text-xs sm:text-sm">{errors.joiningDate}</p>
               )}
             </div>
 
             <div className="flex gap-2 pt-4">
-              <Button onClick={handleSubmit} className="flex-1">
+              <Button onClick={handleSubmit} className="flex-1 h-10 sm:h-9 text-sm">
                 Update Employee
               </Button>
               <Button 
@@ -461,6 +498,7 @@ export default function EmployeeTable() {
                   });
                   setErrors({});
                 }}
+                className="flex-1 h-10 sm:h-9 text-sm"
               >
                 Cancel
               </Button>

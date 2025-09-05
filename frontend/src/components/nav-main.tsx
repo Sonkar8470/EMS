@@ -36,8 +36,7 @@ export function NavMain({
         </SidebarMenu>
         <SidebarMenu>
           {items.map((item) => {
-            const isActive = location.pathname === item.url || 
-              (item.url !== "/employee-dashboard" && location.pathname.startsWith(item.url));
+            const isActive = location.pathname === item.url;
             
             return (
               <SidebarMenuItem key={item.title}>

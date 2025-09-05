@@ -248,31 +248,5 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
-// --- Assign Employee IDs ---
-router.post("/assign-employee-ids", async (req, res) => {
-  try {
-    const employees = await User.find({
-      role: "employee",
-      $or: [{ employeeId: { $exists: false } }, { employeeId: null }],
-    });
-
-    let assignedCount = 0;
-    for (const employee of employees) {
-      try {
-        const nextId = User.getNextEmployeeId ? await User.getNextEmployeeId() : `2025-${assignedCount + 1}`;
-        employee.employeeId = nextId;
-        await employee.save();
-        assignedCount++;
-      } catch (err) {
-        console.error(`ID assign error for ${employee.name}:`, err);
-      }
-    }
-
-    res.json({ message: `Assigned IDs to ${assignedCount} employees`, assignedCount });
-  } catch (err) {
-    console.error("Assign employee IDs error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
 
 export default router;

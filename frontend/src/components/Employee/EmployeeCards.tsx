@@ -109,50 +109,50 @@ export default function EmployeeCards() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Present Days</CardTitle>
-          <IconUser className="h-4 w-4 text-muted-foreground" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-2 sm:px-6 py-2 sm:py-6">
+          <CardTitle className="text-xs sm:text-sm font-medium">Total Present Days</CardTitle>
+          <IconUser className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.presentDays}</div>
+        <CardContent className="px-2 sm:px-6 pb-2 sm:pb-6">
+          <div className="text-lg sm:text-2xl font-bold">{stats.presentDays}</div>
           <p className="text-xs text-muted-foreground">This month</p>
         </CardContent>
       </Card>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Leave Days</CardTitle>
-          <IconCalendar className="h-4 w-4 text-muted-foreground" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-2 sm:px-6 py-2 sm:py-6">
+          <CardTitle className="text-xs sm:text-sm font-medium">Leave Days</CardTitle>
+          <IconCalendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.leaveDays}</div>
+        <CardContent className="px-2 sm:px-6 pb-2 sm:pb-6">
+          <div className="text-lg sm:text-2xl font-bold">{stats.leaveDays}</div>
           <p className="text-xs text-muted-foreground">This month</p>
         </CardContent>
       </Card>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">WFH Days</CardTitle>
-          <IconHome className="h-4 w-4 text-muted-foreground" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-2 sm:px-6 py-2 sm:py-6">
+          <CardTitle className="text-xs sm:text-sm font-medium">WFH Days</CardTitle>
+          <IconHome className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.wfhDays}</div>
+        <CardContent className="px-2 sm:px-6 pb-2 sm:pb-6">
+          <div className="text-lg sm:text-2xl font-bold">{stats.wfhDays}</div>
           <p className="text-xs text-muted-foreground">This month</p>
         </CardContent>
       </Card>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Upcoming Holidays</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-2 sm:px-6 py-2 sm:py-6">
+          <CardTitle className="text-xs sm:text-sm font-medium">Upcoming Holidays</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-6 pb-2 sm:pb-6">
           {holidays.length === 0 ? (
-            <div className="text-sm text-muted-foreground">No upcoming holidays</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">No upcoming holidays</div>
           ) : (
-            <ul className="text-sm space-y-1">
+            <ul className="text-xs sm:text-sm space-y-1">
               {holidays.map(h => (
                 <li key={h.id} className="flex items-center justify-between">
-                  <span>{h.holidayName}</span>
-                  <span className="text-muted-foreground">{new Date(h.date).toLocaleDateString()}</span>
+                  <span className="truncate">{h.holidayName}</span>
+                  <span className="text-muted-foreground text-xs">{new Date(h.date).toLocaleDateString()}</span>
                 </li>
               ))}
             </ul>

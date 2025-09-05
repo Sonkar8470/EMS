@@ -25,7 +25,7 @@ dotenv.config({ path: "config.env" });
 const app = express();
 const httpServer = http.createServer(app);
 
-const DB = process.env.DATABASE;
+const DB = process.env.DATABASE_URL || process.env.DATABASE;
 const port = process.env.PORT || 3001;
 
 // ---------------------------
@@ -43,10 +43,25 @@ app.use(cookieParser()); // Add cookie parser middleware
 // ---------------------------
 // Connect DB
 // ---------------------------
-mongoose
-  .connect(DB)
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+const connectWithRetry = async (retries = 5, delayMs = 2000) => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      if (!DB) throw new Error("DATABASE_URL is not set");
+      await mongoose.connect(DB);
+      console.log("✅ MongoDB Connected");
+      return;
+    } catch (err) {
+      console.error(`❌ MongoDB connection error (attempt ${attempt}/${retries}):`, err?.message || err);
+      if (attempt === retries) throw err;
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+};
+
+connectWithRetry().catch((err) => {
+  console.error("Failed to connect to MongoDB after retries:", err?.message || err);
+  process.exit(1);
+});
 
 // ---------------------------
 // Socket.IO
@@ -95,6 +110,13 @@ app.get("/", (_req, res) => res.send("API is up ✅"));
 app.use((req, res, _next) => {
   console.warn("[404]", req.method, req.originalUrl);
   res.status(404).json({ message: "Route not found", method: req.method, path: req.originalUrl });
+});
+
+// Global error handler
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err, _req, res, _next) => {
+  console.error("[500] Unhandled error:", err?.message || err);
+  res.status(500).json({ message: "Internal Server Error" });
 });
 
 // ---------------------------
@@ -146,4 +168,11 @@ logRoutes();
 // ---------------------------
 httpServer.listen(port, () => {
   console.log(`🚀 Server running on http://localhost:${port}`);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled Rejection:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
 });

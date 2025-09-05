@@ -1,19 +1,10 @@
 import * as React from "react";
 import {
-  IconCamera,
   IconDashboard,
-  IconDatabase,
-  IconFile,
-  IconFileDescription,
   IconFiles,
   IconFolder,
-  IconHelp,
   IconInnerShadowTop,
   IconListDetails,
-  IconReport,
-  IconSearch,
-  IconSettings,
-  IconUsers,
   IconCalendar,
   IconBone,
   IconUser,
@@ -47,7 +38,9 @@ const getNavItems = (user: User | null) => {
       user: {
         name: user.name,
         email: user.email,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          user.name
+        )}&background=random`,
       },
       navMain: [
         {
@@ -56,111 +49,24 @@ const getNavItems = (user: User | null) => {
           icon: IconDashboard,
         },
         {
-          title: "Add Employee",
+          title: "Manage Employee",
           url: "/dashboard/addemployee",
           icon: IconListDetails,
         },
         {
-          title: "Attendence",
+          title: "Employee Attendence",
           url: "/dashboard/attendence",
           icon: IconFolder,
         },
         {
-          title: "Applications",
+          title: "Employee Applications",
           url: "/dashboard/applications",
           icon: IconFiles,
         },
         {
-          title: "Company Holidays",
+          title: "Company Calendar",
           url: "/dashboard/company-holidays",
           icon: IconCalendar,
-        },
-        {
-          title: "Team",
-          url: "#",
-          icon: IconUsers,
-        },
-      ],
-      navClouds: [
-        {
-          title: "Capture",
-          icon: IconCamera,
-          isActive: true,
-          url: "#",
-          items: [
-            {
-              title: "Active Proposals",
-              url: "#",
-            },
-            {
-              title: "Archived",
-              url: "#",
-            },
-          ],
-        },
-        {
-          title: "Proposal",
-          icon: IconFileDescription,
-          url: "#",
-          items: [
-            {
-              title: "Active Proposals",
-              url: "#",
-            },
-            {
-              title: "Archived",
-              url: "#",
-            },
-          ],
-        },
-        {
-          title: "Prompts",
-          icon: IconFile,
-          url: "#",
-          items: [
-            {
-              title: "Active Proposals",
-              url: "#",
-            },
-            {
-              title: "Archived",
-              url: "#",
-            },
-          ],
-        },
-      ],
-      navSecondary: [
-        {
-          title: "Settings",
-          url: "#",
-          icon: IconSettings,
-        },
-        {
-          title: "Get Help",
-          url: "#",
-          icon: IconHelp,
-        },
-        {
-          title: "Search",
-          url: "#",
-          icon: IconSearch,
-        },
-      ],
-      documents: [
-        {
-          name: "Data Library",
-          url: "#",
-          icon: IconDatabase,
-        },
-        {
-          name: "Reports",
-          url: "#",
-          icon: IconReport,
-        },
-        {
-          name: "Word Assistant",
-          url: "#",
-          icon: IconFiles,
         },
       ],
     };
@@ -170,7 +76,9 @@ const getNavItems = (user: User | null) => {
       user: {
         name: user?.name || "Employee",
         email: user?.email || "",
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || "Employee")}&background=random`,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          user?.name || "Employee"
+        )}&background=random`,
       },
       navMain: [
         {
@@ -184,7 +92,7 @@ const getNavItems = (user: User | null) => {
           icon: IconCalendar,
         },
         {
-          title: "Company Holidays",
+          title: "Company Calendar",
           url: "/employee-dashboard/company-holidays",
           icon: IconCalendar,
         },
@@ -206,23 +114,7 @@ const getNavItems = (user: User | null) => {
         },
       ],
       navClouds: [],
-      navSecondary: [
-        {
-          title: "Settings",
-          url: "#",
-          icon: IconSettings,
-        },
-        {
-          title: "Get Help",
-          url: "#",
-          icon: IconHelp,
-        },
-        {
-          title: "Search",
-          url: "#",
-          icon: IconSearch,
-        },
-      ],
+      navSecondary: [],
       documents: [],
     };
   }
@@ -255,8 +147,10 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        {data.documents.length > 0 && <NavDocuments items={data.documents} />}
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        {data.documents && data.documents.length > 0 && (
+          <NavDocuments items={data.documents} />
+        )}
+        <NavSecondary items={data.navSecondary || []} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

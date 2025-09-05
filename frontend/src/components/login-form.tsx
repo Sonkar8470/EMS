@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -86,35 +85,18 @@ export function LoginForm({
 
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome back</CardTitle>
-          <CardDescription>
-            Login with your Apple or Google account
-          </CardDescription>
+    <div className={cn("flex flex-col gap-4 sm:gap-6 w-full max-w-sm mx-auto px-4 sm:px-0", className)} {...props}>
+      <Card className="w-full">
+        <CardHeader className="text-center px-4 sm:px-6 pt-6 sm:pt-6">
+          <CardTitle className="text-lg sm:text-xl">Welcome back</CardTitle>
+         
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6 pb-6 sm:pb-6">
           <form onSubmit={handleSubmit}>
-            <div className="grid gap-6">
-              <div className="flex flex-col gap-4">
-                <Button variant="outline" className="w-full">
-                  Login with Apple
-                </Button>
-                <Button variant="outline" className="w-full">
-                  Login with Google
-                </Button>
-              </div>
-
-              <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
-                <span className="bg-card text-muted-foreground relative z-10 px-2">
-                  Or continue with
-                </span>
-              </div>
-
-              <div className="grid gap-6">
-                <div className="grid gap-3">
-                  <Label htmlFor="email">Email</Label>
+            <div className="grid gap-4 sm:gap-6">
+              <div className="grid gap-4 sm:gap-6">
+                <div className="grid gap-2 sm:gap-3">
+                  <Label htmlFor="email" className="text-sm sm:text-base">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -122,25 +104,26 @@ export function LoginForm({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    className="h-11 sm:h-10 text-sm sm:text-base"
                   />
                 </div>
-                <div className="grid gap-3">
+                <div className="grid gap-2 sm:gap-3">
                   <div className="flex items-center">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password" className="text-sm sm:text-base">Password</Label>
                     <a
                       href="#"
                       onClick={(e) => {
                         e.preventDefault();
                         setShowForgot(true);
                       }}
-                      className="ml-auto text-sm underline-offset-4 hover:underline"
+                      className="ml-auto text-xs sm:text-sm underline-offset-4 hover:underline"
                     >
-                      Forgot your password?
+                      Forgot password?
                     </a>
-                    {showForgot && (
-                      <ForgotPassword />
-                    )}
                   </div>
+                  {showForgot && (
+                    <ForgotPassword />
+                  )}
                   <div className="relative">
                     <Input
                       id="password"
@@ -148,10 +131,11 @@ export function LoginForm({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      className="h-11 sm:h-10 text-sm sm:text-base pr-10"
                     />
                     <button
                       type="button"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 min-h-11 min-w-11 sm:min-h-10 sm:min-w-10 flex items-center justify-center"
                       onClick={() => setShowPassword((prev) => !prev)}
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -159,12 +143,12 @@ export function LoginForm({
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full h-11 sm:h-10 text-sm sm:text-base" disabled={isLoading}>
                   {isLoading ? "Logging in..." : "Login"}
                 </Button>
               </div>
 
-              <div className="text-center text-sm">
+              <div className="text-center text-xs sm:text-sm">
                 Don&apos;t have an account?{" "}
                 <Link to="/" className="text-blue-600 underline">
                   Sign up
@@ -175,9 +159,9 @@ export function LoginForm({
         </CardContent>
       </Card>
 
-      <div className="text-muted-foreground text-center text-xs text-balance">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+      <div className="text-muted-foreground text-center text-xs text-balance px-2">
+        By clicking continue, you agree to our <a href="#" className="underline">Terms of Service</a>{" "}
+        and <a href="#" className="underline">Privacy Policy</a>.
       </div>
     </div>
   );

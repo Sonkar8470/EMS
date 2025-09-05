@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Outlet } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,11 +29,13 @@ export default function EmployeeDashboard() {
         <AppSidebar user={{ ...employee, id: employee.id ?? employee._id ?? "" }} />
         <div className="flex flex-1 flex-col min-w-0 w-full">
           <SiteHeader />
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-auto w-full max-w-none">
+          <main className="flex flex-1 flex-col gap-2 sm:gap-4 lg:gap-6 p-2 sm:p-4 lg:p-6 overflow-auto w-full max-w-none pb-16 md:pb-6">
             <div className="w-full max-w-none">
               <Outlet />
             </div>
           </main>
+          {/* Mobile bottom navigation */}
+          <MobileBottomNav user={{ ...employee, id: employee.id ?? employee._id ?? "" }} />
         </div>
       </div>
     </SidebarProvider>

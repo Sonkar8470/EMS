@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { holidaysAPI, getSocket } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon, CheckCircle2, XCircle, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { Calendar as  CheckCircle2, XCircle, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -194,61 +194,77 @@ export default function CompanyHolidayCalendar({ className, onChanged }: Props) 
   return (
     <div className={cn("w-full", className)}>
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5" />
-              Company Holidays
+        <CardHeader className="px-3 sm:px-6 py-3 sm:py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              Company Holiday Calendar
             </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={goPrev}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="font-medium min-w-[140px] text-center">
-                {cursor.toLocaleString(undefined, { month: "long", year: "numeric" })}
-              </span>
-              <Button variant="outline" size="sm" onClick={goNext}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={goToday}>Today</Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={refresh}
-                disabled={isRefreshing}
-                className="h-8 px-3"
-              >
-                <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
-              </Button>
-              {isAdmin && (
-                <Button onClick={saveChanges} disabled={saving}>
-                  {saving ? "Saving..." : "Save"}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 sm:p-0">
+              {/* Navigation buttons */}
+              <div className="flex items-center justify-center gap-2">
+                <Button variant="outline" size="sm" onClick={goPrev} className="h-8 sm:h-9">
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
-              )}
+                <span className="font-medium min-w-[120px] sm:min-w-[140px] text-center text-sm sm:text-base">
+                  {cursor.toLocaleString(undefined, { month: "long", year: "numeric" })}
+                </span>
+                <Button variant="outline" size="sm" onClick={goNext} className="h-8 sm:h-9">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Action buttons */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={goToday}
+                  className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm"
+                >
+                  Today
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={refresh}
+                  disabled={isRefreshing}
+                  className="w-full sm:w-auto h-8 sm:h-9 px-3 text-xs sm:text-sm"
+                >
+                  <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </Button>
+                {isAdmin && (
+                  <Button 
+                    onClick={saveChanges} 
+                    disabled={saving}
+                    className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm"
+                  >
+                    {saving ? "Saving..." : "Save"}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
-          <div className="text-sm text-muted-foreground">Total holidays this month: {monthHolidayCount}</div>
+          <div className="text-xs sm:text-sm text-muted-foreground mt-2">
+            Total holidays this month: {monthHolidayCount}
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3 mb-3 p-2 bg-gray-50 rounded-lg">
+        <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+          <div className="flex flex-wrap gap-2 sm:gap-3 mb-3 p-2 sm:p-3 bg-gray-50 rounded-lg">
             <div className="flex items-center gap-2">
               <span className="inline-block h-3 w-3 rounded bg-emerald-500" />
-              <span className="text-sm font-medium">Holiday</span>
+              <span className="text-xs sm:text-sm font-medium">Holiday</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="inline-block h-3 w-3 rounded bg-slate-300 dark:bg-slate-700" />
-              <span className="text-sm font-medium">W/O (Sun, 2nd & 4th Sat)</span>
+              <span className="text-xs sm:text-sm font-medium">W/O (Sun, 2nd & 4th Sat)</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-block h-3 w-3 rounded bg-transparent border" />
-              <span className="text-sm font-medium">Non-Holiday</span>
-            </div>
+            
           </div>
 
-          <div className="grid grid-cols-7 gap-1 text-center text-sm font-semibold text-muted-foreground mb-2">
+          <div className="grid grid-cols-7 gap-1 text-center text-xs sm:text-sm font-semibold text-muted-foreground mb-2">
             {dayNames.map((w) => (
-              <div key={w} className="py-2">
+              <div key={w} className="py-1 sm:py-2">
                 {w}
               </div>
             ))}
@@ -258,7 +274,7 @@ export default function CompanyHolidayCalendar({ className, onChanged }: Props) 
             {matrix.map((row, rIdx) =>
               row.map((cell, cIdx) => {
                 if (!cell)
-                  return <div key={`${rIdx}-${cIdx}`} className="h-20 bg-muted/30" />;
+                  return <div key={`${rIdx}-${cIdx}`} className="h-16 sm:h-20 bg-muted/30" />;
                 const ymd = toYmd(cell);
                 const holiday = isHoliday(cell);
                 const wo = isWO(cell);
@@ -271,7 +287,7 @@ export default function CompanyHolidayCalendar({ className, onChanged }: Props) 
                     key={`${rIdx}-${cIdx}`}
                     onClick={() => (isEditable ? toggleHoliday(cell) : undefined)}
                     className={cn(
-                      "relative h-20 p-2 text-left border",
+                      "relative h-16 sm:h-20 p-1 sm:p-2 text-left border",
                       (wo || !isEditable) && "bg-slate-100 dark:bg-slate-900/40",
                       !isEditable && "cursor-not-allowed",
                       isToday && "ring-2 ring-primary",
@@ -283,9 +299,9 @@ export default function CompanyHolidayCalendar({ className, onChanged }: Props) 
                     <div className="flex items-center justify-between">
                       <span className="text-xs opacity-70">{cell.getDate()}</span>
                       {holiday ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600" />
                       ) : wo ? (
-                        <XCircle className="h-4 w-4 text-amber-500" />
+                        <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
                       ) : null}
                     </div>
                     <div className="mt-1 text-xs leading-tight truncate">
@@ -296,7 +312,7 @@ export default function CompanyHolidayCalendar({ className, onChanged }: Props) 
                         <Button
                           variant="outline"
                           size="sm" asChild
-                          className="h-5 px-1 text-[10px]"
+                          className="h-4 sm:h-5 px-1 text-[8px] sm:text-[10px]"
                         >
                           <span onClick={(e) => {
                             e.stopPropagation();
@@ -321,20 +337,26 @@ export default function CompanyHolidayCalendar({ className, onChanged }: Props) 
       </Card>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-sm sm:max-w-md mx-auto">
           <DialogHeader>
-            <DialogTitle>{holidays[editingDate || ""] ? "Edit Holiday" : "Add Holiday"}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
+              {holidays[editingDate || ""] ? "Edit Holiday" : "Add Holiday"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <div className="text-sm text-muted-foreground">Date</div>
-              <div className="text-sm font-medium">{editingDate}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Date</div>
+              <div className="text-sm sm:text-base font-medium">{editingDate}</div>
             </div>
             <div>
-              <div className="text-sm text-muted-foreground mb-1">Holiday Name</div>
-              <Input value={editingName} onChange={(e) => setEditingName(e.target.value)} />
+              <div className="text-xs sm:text-sm text-muted-foreground mb-1">Holiday Name</div>
+              <Input 
+                value={editingName} 
+                onChange={(e) => setEditingName(e.target.value)} 
+                className="h-10 sm:h-9 text-sm"
+              />
             </div>
-            <div className="flex gap-2 pt-2">
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
               <Button
                 onClick={() => {
                   if (!editingDate) return;
@@ -352,7 +374,7 @@ export default function CompanyHolidayCalendar({ className, onChanged }: Props) 
                   });
                   setIsEditOpen(false);
                 }}
-                className="flex-1"
+                className="flex-1 h-10 sm:h-9 text-sm"
               >
                 Save
               </Button>
@@ -381,11 +403,16 @@ export default function CompanyHolidayCalendar({ className, onChanged }: Props) 
                       await fetchHolidays();
                     }
                   }}
+                  className="flex-1 h-10 sm:h-9 text-sm"
                 >
                   Unmark
                 </Button>
               )}
-              <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsEditOpen(false)}
+                className="flex-1 sm:flex-none h-10 sm:h-9 text-sm"
+              >
                 Cancel
               </Button>
             </div>

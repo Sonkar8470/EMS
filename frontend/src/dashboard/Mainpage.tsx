@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
+import { MobileBottomNav } from "@/components/MobileBottomNav"
 import {
   SidebarInset,
   SidebarProvider,
@@ -7,7 +8,6 @@ import {
 
 import { Outlet } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
-// removed unused AdminDashboardHome import
 
 export default function Page() {
   const { user } = useAuth();
@@ -31,8 +31,13 @@ export default function Page() {
       <AppSidebar variant="inset" user={transformedUser} />
       <SidebarInset>
         <SiteHeader />
-        <Outlet />
-        {/* If used as index route, render AdminDashboardHome there */}
+        <main className="flex-1 overflow-auto pb-16 md:pb-0">
+          <div className="container mx-auto p-2 sm:p-4 lg:p-6">
+            <Outlet />
+          </div>
+        </main>
+        {/* Mobile bottom navigation */}
+        <MobileBottomNav user={transformedUser} />
       </SidebarInset>
     </SidebarProvider>
   )

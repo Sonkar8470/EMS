@@ -3,7 +3,7 @@ import io from "socket.io-client";
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: "http://localhost:3001/api",
+  baseURL: (import.meta as any).env?.VITE_API_URL || "http://localhost:3001/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -53,8 +53,8 @@ export const authAPI = {
   logout: () => api.post("/users/logout"),
   forgotPassword: (email: string) =>
     api.post("/users/forgot-password", { email }),
-  resetPassword: (token: string, password: string) =>
-    api.post("/users/reset-password", { token, password }),
+  resetPassword: (email: string, token: string, newPassword: string) =>
+    api.post("/users/reset-password", { email, token, newPassword }),
 };
 
 // Attendance API endpoints
@@ -134,7 +134,6 @@ export const userAPI = {
   updateUser: (id: string, data: unknown) => api.put(`/users/${id}`, data),
   deleteUser: (id: string) => api.delete(`/users/${id}`),
   getNextEmployeeId: () => api.get("/users/next-employee-id"),
-  assignEmployeeIds: () => api.post("/users/assign-employee-ids"),
 };
 
 // Holidays API endpoints
