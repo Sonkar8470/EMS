@@ -126,10 +126,28 @@ router.get("/today", authMiddleware, async (req, res) => {
 router.get("/history", authMiddleware, async (req, res) => {
   try {
     const userId = req.user._id;
+    
+    // Get all attendance records sorted by date descending
     const history = await Attendance.find({ employeeId: userId })
-      .sort({ date: -1 })
-      .limit(30);
-    const out = history.map((r) => ({ ...r.toObject(), id: r._id, date: toYmd(r.date) }));
+      .sort({ date: -1 });
+    
+    // Remove duplicates by keeping only the latest record for each date
+    const uniqueRecords = [];
+    const seenDates = new Set();
+    
+    for (const record of history) {
+      const dateKey = toYmd(record.date);
+      if (!seenDates.has(dateKey)) {
+        seenDates.add(dateKey);
+        uniqueRecords.push(record);
+      }
+    }
+    
+    // Limit to 30 records and format response
+    const out = uniqueRecords
+      .slice(0, 30)
+      .map((r) => ({ ...r.toObject(), id: r._id, date: toYmd(r.date) }));
+    
     res.json(out);
   } catch (err) {
     res.status(500).json({ error: "Server error" });

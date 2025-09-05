@@ -13,10 +13,11 @@ interface AttendanceRecord {
   id?: string; // For frontend compatibility
   employeeId: string; // ObjectId as string
   date: string; // YYYY-MM-DD
-  status: "Present" | "Leave"; // From schema enum
+  status: "Present" | "Absent" | "Leave" | "WFH" | "Holiday" | "W/O"; // From schema enum
   inTime?: string; // HH:mm
   outTime?: string; // HH:mm
   workedHours?: number;
+  holidayName?: string; // For holiday records
   location?: {
     in?: GeoPoint;
     out?: GeoPoint;
@@ -82,7 +83,7 @@ export default function EmployeeAttendance({ employeeId }: { employeeId?: string
   const loadHistory = useCallback(async () => {
     if (!userId) return;
     try {
-      const response = await attendanceAPI.getAllAttendance({ employeeId: userId });
+      const response = await attendanceAPI.getHistory();
       const data: AttendanceRecord[] = response.data;
       setHistory(data);
     } catch (error) {
@@ -364,45 +365,62 @@ export default function EmployeeAttendance({ employeeId }: { employeeId?: string
           <CardTitle>Recent History</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <table className="w-full table-auto text-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-3 py-2 text-left">Date</th>
-                <th className="px-3 py-2 text-left">Status</th>
-                <th className="px-3 py-2 text-left">In</th>
-                <th className="px-3 py-2 text-left">Out</th>
-                <th className="px-3 py-2 text-left">Working Hours</th>
-                <th className="px-3 py-2 text-left">Day Type</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.length === 0 ? (
+          {history.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <div className="text-lg font-medium mb-2">No attendance records found</div>
+              <div className="text-sm">Your attendance history will appear here once you start marking attendance.</div>
+            </div>
+          ) : (
+            <table className="w-full table-auto text-sm">
+              <thead className="bg-gray-50 border-b">
                 <tr>
-                  <td colSpan={6} className="px-3 py-4 text-center">
-                    No records
-                  </td>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">Date</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">Status</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">In</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">Out</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">Working Hours</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">Day Type</th>
                 </tr>
-              ) : (
-                history.map((r) => (
+              </thead>
+              <tbody>
+                {history.map((r) => (
                   <tr
                     key={String(r.id ?? `${r.employeeId}-${r.date}`)}
-                    className="border-t"
+                    className="border-b hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-3 py-2">{r.date}</td>
-                    <td className="px-3 py-2">{r.status}</td>
-                    <td className="px-3 py-2">{r.inTime ?? "-"}</td>
-                    <td className="px-3 py-2">{r.outTime ?? "-"}</td>
-                    <td className="px-3 py-2">
+                    <td className="px-4 py-3 font-medium">{r.date}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        r.status === 'Present' ? 'bg-green-100 text-green-800' :
+                        r.status === 'Absent' ? 'bg-red-100 text-red-800' :
+                        r.status === 'Leave' ? 'bg-yellow-100 text-yellow-800' :
+                        r.status === 'WFH' ? 'bg-blue-100 text-blue-800' :
+                        r.status === 'Holiday' ? 'bg-purple-100 text-purple-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {r.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">{r.inTime ?? "-"}</td>
+                    <td className="px-4 py-3">{r.outTime ?? "-"}</td>
+                    <td className="px-4 py-3">
                       {r.workedHours ? `${r.workedHours.toFixed(2)}h` : calculateWorkingHoursFromTimes(r.inTime, r.outTime)}
                     </td>
-                    <td className="px-3 py-2">
-                      {getDayType(r.inTime, r.outTime, r.workedHours)}
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                        getDayType(r.inTime, r.outTime, r.workedHours) === 'Full Day' ? 'bg-green-100 text-green-800' :
+                        getDayType(r.inTime, r.outTime, r.workedHours) === 'Half Day' ? 'bg-yellow-100 text-yellow-800' :
+                        getDayType(r.inTime, r.outTime, r.workedHours) === 'Short Day' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {getDayType(r.inTime, r.outTime, r.workedHours)}
+                      </span>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          )}
         </CardContent>
       </Card>
     </div>

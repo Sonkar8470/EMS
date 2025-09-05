@@ -76,6 +76,7 @@ export const attendanceAPI = {
     api.get("/attendances/me", { params }),
   getAllAttendance: (filters?: unknown) =>
     api.get("/attendances", { params: filters }),
+  getHistory: () => api.get("/attendances/history"),
   updateAttendance: (id: string, data: unknown) =>
     api.put(`/attendances/${id}`, data),
   adminUpdateAttendance: (id: string, data: unknown) =>

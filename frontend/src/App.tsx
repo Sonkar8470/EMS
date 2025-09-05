@@ -1,9 +1,9 @@
 import { Routes, Route } from "react-router-dom";
 import { LoginPage, SignUpPage } from "./Login&Signpage";
 import Page from "./dashboard/Mainpage";
-import EmployeeTable from "./components/EmployeeTable";
+import EmployeeTable from "./components/Admin/EmployeeTable";
 // removed unused admin demo imports
-import Attendance from "./components/Attendence";
+import Attendance from "./components/Admin/Attendence";
 import EmployeeDashboard from "./components/Employee/EmployeeDashboard";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -17,8 +17,8 @@ import LeaveManagement from "./components/Employee/LeaveManagement";
 import WFH from "./components/Employee/WFH";
 import SalaryStructure from "./components/Employee/SalaryStructure";
 import MyProfile from "./components/Employee/MyProfile";
-import CompanyHolidayCalendar from "@/components/CompanyHolidayCalendar";
-import AdminApplications from "@/components/Employee/AdminApplications";
+import CompanyHolidayCalendar from "@/components/Admin/CompanyHolidayCalendar";
+import AdminApplications from "@/components/Admin/AdminApplications";
 import AdminDashboardHome from "./dashboard/components/AdminDashboardHome";
 
 function AppContent() {
