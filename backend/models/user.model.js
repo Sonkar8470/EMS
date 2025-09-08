@@ -61,45 +61,53 @@ const userSchema = new mongoose.Schema(
 
 // ✅ Generate employee ID before saving
 userSchema.pre("save", async function (next) {
-  // Only generate employee ID for new employees (not admins)
-  if (this.isNew && this.role === "employee" && !this.employeeId) {
-    try {
-      // Get current year
+  try {
+    // Only generate employee ID for new employees (not admins)
+    if (this.isNew && this.role === "employee" && !this.employeeId) {
       const currentYear = new Date().getFullYear();
-      
-      // Find the highest employee ID for this year
-      const lastEmployee = await this.constructor.findOne(
-        { 
-          employeeId: { $regex: `^${currentYear}-` },
-          role: "employee"
-        },
-        {},
-        { sort: { employeeId: -1 } }
-      );
-      
+
       let sequence = 1;
-      if (lastEmployee && lastEmployee.employeeId) {
-        // Extract sequence number from last employee ID (e.g., "2025-001" -> 1)
-        const lastSequence = parseInt(lastEmployee.employeeId.split('-')[1]);
-        sequence = lastSequence + 1;
+      let newEmployeeId = "";
+
+      while (true) {
+        // Find the last employee for this year
+        const lastEmployee = await this.constructor.findOne(
+          { employeeId: { $regex: `^${currentYear}-` }, role: "employee" },
+          {},
+          { sort: { employeeId: -1 } }
+        );
+
+        if (lastEmployee && lastEmployee.employeeId) {
+          const lastSequence = parseInt(lastEmployee.employeeId.split("-")[1]);
+          sequence = lastSequence + 1;
+        }
+
+        newEmployeeId = `${currentYear}-${sequence.toString().padStart(3, "0")}`;
+
+        // Check if it already exists
+        const exists = await this.constructor.findOne({ employeeId: newEmployeeId });
+        if (!exists) break; // ✅ Found a unique ID
+
+        sequence++; // retry with next number
       }
-      
-      // Format: YYYY-XXX (e.g., 2025-001, 2025-002)
-      this.employeeId = `${currentYear}-${sequence.toString().padStart(3, '0')}`;
-      
+
+      this.employeeId = newEmployeeId;
       console.log(`Generated Employee ID: ${this.employeeId} for ${this.name}`);
-    } catch (error) {
-      console.error("Error generating employee ID:", error);
-      // Fallback: use timestamp-based ID
-      this.employeeId = `EMP-${Date.now()}`;
     }
+
+    // Hash password if modified
+    if (this.isModified("password")) {
+      this.password = await bcrypt.hash(this.password, 12);
+    }
+
+    next();
+  } catch (error) {
+    console.error("Error generating employee ID:", error);
+    this.employeeId = `EMP-${Date.now()}`;
+    next();
   }
-  
-  // Hash password if modified
-  if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
+
 
 // ✅ Compare password during login
 userSchema.methods.correctPassword = async function (

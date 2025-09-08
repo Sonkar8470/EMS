@@ -12,23 +12,69 @@ const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 // --- Signup Route ---
 router.post("/signup", async (req, res) => {
   try {
-    const { name, email, password, mobile, role, address, joiningDate, position } = req.body;
+    const { name, email, password, mobile } = req.body || {};
 
-    const exists = await User.findOne({ $or: [{ email }, { mobile }] });
+    // Basic input validation (frontend also validates)
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+    if (!email || !/^\S+@\S+\.\S+$/.test(String(email))) {
+      return res.status(400).json({ message: "Valid email is required" });
+    }
+    if (!password || !/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/.test(String(password))) {
+      return res.status(400).json({ message: "Password must start with a capital letter, include at least one number, and one special character" });
+    }
+    if (!mobile || !/^[0-9]{10}$/.test(String(mobile))) {
+      return res.status(400).json({ message: "Valid 10-digit mobile number is required" });
+    }
+
+    // Enforce uniqueness
+    const exists = await User.findOne({ $or: [{ email: String(email).toLowerCase().trim() }, { mobile: String(mobile).trim() }] });
     if (exists) {
       return res.status(400).json({ message: "User with this email or mobile already exists" });
     }
 
-    const user = await User.create({
-      name,
-      email,
-      password,
-      mobile,
-      role: role || "employee",
-      address,
-      position,
-      joiningDate: joiningDate ? new Date(joiningDate) : undefined,
-    });
+    // Generate unique employeeId with retry-on-duplicate (no extra collection)
+    const year = new Date().getFullYear();
+    let sequence = 0;
+    const last = await User.findOne(
+      { employeeId: { $regex: `^${year}-` }, role: "employee" },
+      { employeeId: 1 },
+      { sort: { employeeId: -1 } }
+    );
+    if (last?.employeeId) {
+      const parts = String(last.employeeId).split("-");
+      sequence = Number(parts[1] || 0);
+    }
+
+    let user;
+    let attempts = 0;
+    const maxAttempts = 7; // small bounded retry window
+    while (attempts < maxAttempts) {
+      sequence += 1;
+      const employeeId = `${year}-${sequence.toString().padStart(3, "0")}`;
+      try {
+        user = await User.create({
+          name: String(name).trim(),
+          email: String(email).toLowerCase().trim(),
+          password: String(password),
+          mobile: String(mobile).trim(),
+          role: "employee",
+          employeeId,
+        });
+        break; // success
+      } catch (e) {
+        // If duplicate employeeId, retry with next sequence; otherwise rethrow
+        if (e?.code === 11000 && e?.keyPattern && e.keyPattern.employeeId) {
+          attempts += 1;
+          continue;
+        }
+        throw e;
+      }
+    }
+    if (!user) {
+      return res.status(503).json({ message: "Could not allocate employee ID. Please retry." });
+    }
 
     res.status(201).json({
       message: "Signup successful",
@@ -42,6 +88,10 @@ router.post("/signup", async (req, res) => {
     if (err?.code === 11000) {
       const key = Object.keys(err.keyPattern ?? {})[0] || "field";
       return res.status(400).json({ message: `Duplicate ${key}. Please use a different one.` });
+    }
+    if (err?.name === "ValidationError") {
+      const first = Object.values(err.errors || {})[0];
+      return res.status(400).json({ message: first?.message || "Invalid input" });
     }
     console.error("Signup error:", err);
     res.status(500).json({ message: "Server error" });

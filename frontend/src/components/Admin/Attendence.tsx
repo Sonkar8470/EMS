@@ -85,6 +85,11 @@ export default function Attendance() {
             displayName: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
           }));
         setEmployees(employeeUsers);
+        // Auto-select first employee if none selected
+        if (!selectedEmployeeId && employeeUsers.length > 0) {
+          const firstId = (employeeUsers[0].id || employeeUsers[0]._id || '').toString();
+          setSelectedEmployeeId(firstId);
+        }
       } catch (err) {
         console.error("Error fetching users:", err);
         setErrorMessage("Failed to fetch employees. Please try again.");
@@ -99,7 +104,7 @@ export default function Attendance() {
     };
     
     fetchUsers();
-  }, [toast]);
+  }, [toast, selectedEmployeeId]);
 
   // Fetch Attendance for selected employee and current month
   const fetchAttendance = useCallback(async () => {

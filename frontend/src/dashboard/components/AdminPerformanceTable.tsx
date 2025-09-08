@@ -16,16 +16,19 @@ export default function AdminPerformanceTable() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
+  const now = new Date();
+  const [month, setMonth] = useState<number>(now.getUTCMonth() + 1); // 1-12
+  const [year, setYear] = useState<number>(now.getUTCFullYear());
 
   const load = useMemo(() => async () => {
     setLoading(true);
     try {
-      const { data } = await dashboardAPI.getPerformance();
+      const { data } = await dashboardAPI.getPerformance({ month, year });
       setRows(data?.rows || []);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [month, year]);
 
   useEffect(() => {
     load();
@@ -38,9 +41,31 @@ export default function AdminPerformanceTable() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Employee Performance</CardTitle>
+        <CardTitle>
+          Employee Performance – {new Date(Date.UTC(year, month - 1, 1)).toLocaleString(undefined, { month: "long", year: "numeric" })}
+        </CardTitle>
       </CardHeader>
       <CardContent>
+        <div className="flex items-center gap-2 mb-3">
+          <select
+            className="border rounded px-2 py-1"
+            value={month}
+            onChange={(e) => { setPage(1); setMonth(Number(e.target.value)); }}
+          >
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <option key={m} value={m}>{new Date(Date.UTC(2000, m - 1, 1)).toLocaleString(undefined, { month: "long" })}</option>
+            ))}
+          </select>
+          <select
+            className="border rounded px-2 py-1"
+            value={year}
+            onChange={(e) => { setPage(1); setYear(Number(e.target.value)); }}
+          >
+            {Array.from({ length: 6 }, (_, i) => now.getUTCFullYear() - 4 + i).map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
         {loading ? (
           <div>Loading...</div>
         ) : rows.length === 0 ? (

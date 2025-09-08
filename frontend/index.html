@@ -26,28 +26,42 @@
     <!-- PWA Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {
+        const isProd = location.hostname !== 'localhost' && !location.port;
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registered successfully:', registration);
-              
-              // Check for updates
-              registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                if (newWorker) {
-                  newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                      console.log('New service worker installed. Refresh to update.');
-                    }
-                  });
-                }
+          if (isProd) {
+            navigator.serviceWorker.register('/sw.js')
+              .then((registration) => {
+                console.log('SW registered successfully:', registration);
+                registration.addEventListener('updatefound', () => {
+                  const newWorker = registration.installing;
+                  if (newWorker) {
+                    newWorker.addEventListener('statechange', () => {
+                      if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        console.log('New service worker installed. Refresh to update.');
+                      }
+                    });
+                  }
+                });
+              })
+              .catch((registrationError) => {
+                console.log('SW registration failed:', registrationError);
               });
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed:', registrationError);
+          } else {
+            // In development, proactively unregister any existing service workers and clear caches
+            navigator.serviceWorker.getRegistrations().then((registrations) => {
+              for (const registration of registrations) {
+                registration.unregister();
+              }
             });
+            if (window.caches && caches.keys) {
+              caches.keys().then((cacheNames) => {
+                return Promise.all(cacheNames.map((name) => caches.delete(name)));
+              });
+            }
+            console.log('Development mode: service worker unregistered and caches cleared');
+          }
         });
-        
+
         // Handle service worker messages
         navigator.serviceWorker.addEventListener('message', (event) => {
           console.log('Message from service worker:', event.data);

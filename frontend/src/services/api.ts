@@ -3,7 +3,7 @@ import io from "socket.io-client";
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: (import.meta as any).env?.VITE_API_URL || "http://localhost:3001/api",
+  baseURL: (import.meta as unknown as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || "http://localhost:3001/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -42,14 +42,15 @@ api.interceptors.response.use(
 // Auth API endpoints
 export const authAPI = {
   login: (credentials: { email: string; password: string }) =>
-    api.post("/auth/login", credentials),
+    api.post("/users/login", credentials),
   register: (userData: {
     name: string;
     email: string;
     password: string;
     mobile: string;
     role: string;
-  }) => api.post("/auth/signup", userData),
+  }) => api.post("/users/signup", userData),
+  
   logout: () => api.post("/users/logout"),
   forgotPassword: (email: string) =>
     api.post("/users/forgot-password", { email }),
@@ -121,7 +122,8 @@ export const dashboardAPI = {
   getEmployeeStats: () => api.get("/dashboard/employee-stats"),
   getOverallStats: () => api.get("/dashboard/overall-stats"),
   getAdminSummary: () => api.get("/dashboard/admin-summary"),
-  getPerformance: () => api.get("/dashboard/performance"),
+  getPerformance: (params?: { month?: number | string; year?: number | string }) =>
+    api.get("/dashboard/performance", { params }),
 };
 
 // User API endpoints
