@@ -9,8 +9,8 @@ router.get("/:userId", authMiddleware, async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Check if user is requesting their own data or is admin
-    if (req.user.role !== "admin" && req.user.id !== userId) {
+    // Check if user is requesting their own data or is admin/hr
+    if (req.user.role !== "admin" && req.user.role !== "hr" && req.user.id !== userId) {
       return res.status(403).json({ message: "Access denied" });
     }
     
@@ -53,8 +53,8 @@ router.post("/request", authMiddleware, async (req, res) => {
   try {
     const { employeeId, date, reason } = req.body;
     
-    // Check if user is requesting for themselves or is admin
-    if (req.user.role !== "admin" && req.user.id !== employeeId) {
+    // Check if user is requesting for themselves or is admin/hr
+    if (req.user.role !== "admin" && req.user.role !== "hr" && req.user.id !== employeeId) {
       return res.status(403).json({ message: "Access denied" });
     }
     

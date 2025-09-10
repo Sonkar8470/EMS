@@ -18,7 +18,7 @@ export default function WFH() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   type HistoryItem = {
     action: "approved" | "rejected"
-    adminId?: { name?: string; email?: string; employeeId?: string } | string
+    adminId?: { name?: string; email?: string; employeeId?: string; role?: string } | string
     date: string
   }
   type WFHRow = {
@@ -137,6 +137,7 @@ export default function WFH() {
                     <th className="py-2 pr-4">Dates</th>
                     <th className="py-2 pr-4">Reason</th>
                     <th className="py-2">Status</th>
+                    <th className="py-2">Processed By</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -148,6 +149,21 @@ export default function WFH() {
                         <span className={`px-2 py-1 rounded text-xs ${r.status === "approved" ? "bg-green-100 text-green-700" : r.status === "rejected" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>
                           {r.status}
                         </span>
+                      </td>
+                      <td className="py-2 pr-4">
+                        {r.status === "approved" || r.status === "rejected" ? (
+                          (() => {
+                            const latest = (r.history || []).slice().reverse().find(h => h.action === r.status);
+                            if (!latest) return <span className="text-muted-foreground">—</span>;
+                            const admin = latest.adminId as { name?: string; role?: string } | undefined;
+                            const who = admin?.role === "admin" ? "Admin" : admin?.role === "hr" ? "HR" : "Approver";
+                            
+                            const when = latest.date ? ` on ${new Date(latest.date).toLocaleDateString()}` : "";
+                            return <span>{`${who}${when}`}</span>;
+                          })()
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}

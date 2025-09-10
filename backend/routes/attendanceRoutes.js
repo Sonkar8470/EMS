@@ -161,10 +161,10 @@ router.get("/", authMiddleware, async (req, res) => {
     
     console.log("GET / - Query params:", { employeeId, date, _sort, _order, _limit });
     
-    // If employeeId is provided, allow only admins to query others
+    // If employeeId is provided, allow only admins/HR to query others
     let userId = req.user._id;
     if (employeeId && String(employeeId) !== String(req.user._id)) {
-      if (req.user.role !== "admin") {
+      if (req.user.role !== "admin" && req.user.role !== "hr") {
         return res.status(403).json({ message: "Forbidden" });
       }
       userId = employeeId;
@@ -272,10 +272,10 @@ router.post("/", authMiddleware, async (req, res) => {
   try {
     const { employeeId, date, status, inTime, outTime, location, workedHours } = req.body;
     
-    // Use provided employeeId only if admin; otherwise logged-in user's ID
+    // Use provided employeeId only if admin/hr; otherwise logged-in user's ID
     let userId = req.user._id;
     if (employeeId && String(employeeId) !== String(req.user._id)) {
-      if (req.user.role !== "admin") {
+      if (req.user.role !== "admin" && req.user.role !== "hr") {
         return res.status(403).json({ message: "Forbidden" });
       }
       userId = employeeId;
@@ -344,10 +344,10 @@ router.put("/:id", authMiddleware, async (req, res) => {
       workedHours
     });
     
-    // Only admins can change another user's record; employees can only update their own existing record
+    // Only admins/hr can change another user's record; employees can only update their own existing record
     let userId = req.user._id;
     if (employeeId && String(employeeId) !== String(req.user._id)) {
-      if (req.user.role !== "admin") {
+      if (req.user.role !== "admin" && req.user.role !== "hr") {
         return res.status(403).json({ message: "Forbidden" });
       }
       userId = employeeId;
@@ -522,7 +522,7 @@ router.post("/mark", authMiddleware, async (req, res) => {
 // PUT /attendance/update/:id -> admin updates any user's attendance
 router.put("/update/:id", authMiddleware, async (req, res) => {
   try {
-    if (req.user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    if (req.user.role !== "admin" && req.user.role !== "hr") return res.status(403).json({ message: "Forbidden" });
     const { id } = req.params;
     const { employeeId, date, status, inTime, outTime, location, workedHours } = req.body;
     const update = {

@@ -28,12 +28,12 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "employee";
+  role: "admin" | "hr" | "employee";
   mobile?: string;
 }
 
 const getNavItems = (user: User | null) => {
-  if (user?.role === "admin") {
+  if (user?.role === "admin" || user?.role === "hr") {
     return {
       user: {
         name: user.name,
@@ -138,7 +138,11 @@ export function AppSidebar({
               <a href="#">
                 <IconInnerShadowTop className="!size-5" />
                 <span className="text-base font-semibold">
-                  {user?.role === "admin" ? "Acme Inc." : "Employee Portal"}
+                  {user?.role === "admin"
+                    ? "Admin Portal"
+                    : user?.role === "hr"
+                      ? "HR Portal"
+                      : "Employee Portal"}
                 </span>
               </a>
             </SidebarMenuButton>

@@ -63,7 +63,7 @@ function getDayLabel(date: Date): string {
 
 export default function CompanyHolidayCalendar({ className, onChanged }: Props) {
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "hr";
   const today = new Date();
   const [cursor, setCursor] = useState<Date>(new Date(today.getFullYear(), today.getMonth(), 1));
   const [loading, setLoading] = useState<boolean>(false);

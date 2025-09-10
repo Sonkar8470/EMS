@@ -2,7 +2,7 @@ import type { JSX } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
-type Role = "admin" | "employee";
+type Role = "admin" | "hr" | "employee";
 
 interface ProtectedRouteProps {
   allowedRoles: Role[];
@@ -27,7 +27,7 @@ export function ProtectedRoute({ allowedRoles, children }: ProtectedRouteProps) 
   }
 
   if (!allowedRoles.includes(user.role as Role)) {
-    const redirectPath = user.role === "admin" ? "/dashboard" : "/employee-dashboard";
+    const redirectPath = user.role === "admin" || user.role === "hr" ? "/dashboard" : "/employee-dashboard";
     console.log(`ProtectedRoute: User role ${user.role} not allowed for ${allowedRoles.join(", ")}, redirecting to ${redirectPath}`);
     return <Navigate to={redirectPath} replace />;
   }

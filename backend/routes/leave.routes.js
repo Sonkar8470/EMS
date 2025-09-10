@@ -13,10 +13,10 @@ import {
 
 const router = express.Router();
 
-// Simple admin guard using req.user.role populated by auth middleware
-const isAdmin = (req, res, next) => {
-  if (req?.user?.role === "admin") return next();
-  return res.status(403).json({ message: "Admin access required" });
+// Simple admin/hr guard using req.user.role populated by auth middleware
+const isAdminOrHr = (req, res, next) => {
+  if (req?.user?.role === "admin" || req?.user?.role === "hr") return next();
+  return res.status(403).json({ message: "Admin/HR access required" });
 };
 
 // Employee routes
@@ -25,11 +25,11 @@ router.post("/apply-wfh", auth, applyWFH);
 router.get("/my-leaves", auth, getEmployeeLeaves);
 router.get("/my-wfh", auth, getEmployeeWFH);
 
-// Admin routes
-router.get("/admin/leave", auth, isAdmin, getAllLeaveApplications);
-router.get("/admin/wfh", auth, isAdmin, getAllWFHApplications);
-router.put("/admin/leave/:id", auth, isAdmin, updateLeaveStatus);
-router.put("/admin/wfh/:id", auth, isAdmin, updateWFHStatus);
+// Admin/HR routes
+router.get("/admin/leave", auth, isAdminOrHr, getAllLeaveApplications);
+router.get("/admin/wfh", auth, isAdminOrHr, getAllWFHApplications);
+router.put("/admin/leave/:id", auth, isAdminOrHr, updateLeaveStatus);
+router.put("/admin/wfh/:id", auth, isAdminOrHr, updateWFHStatus);
 
 export default router;
 

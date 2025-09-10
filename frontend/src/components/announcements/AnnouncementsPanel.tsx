@@ -23,7 +23,7 @@ export default function AnnouncementsPanel({ variant }: { variant: "admin" | "em
   const [message, setMessage] = useState("");
   const [pinned, setPinned] = useState(false);
   const [loading, setLoading] = useState(false);
-  const isAdmin = user?.role === "admin" && variant === "admin";
+  const isAdmin = (user?.role === "admin" || user?.role === "hr") && variant === "admin";
 
   const load = async () => {
     setLoading(true);

@@ -17,15 +17,30 @@ interface NavItems {
   secondary: NavItemType[];
 }
 
-const navItems: NavItems = {
-  main: [
-    { url: "/dashboard", title: "Dashboard", icon: Home },
-    { url: "/profile", title: "Profile", icon: User },
-  ],
-  secondary: [
-    { url: "/settings", title: "Settings", icon: Settings },
-    { url: "/help", title: "Help", icon: HelpCircle },
-  ],
+const getNavItems = (role?: string): NavItems => {
+  if (role === "admin" || role === "hr") {
+    return {
+      main: [
+        { url: "/dashboard", title: "Dashboard", icon: Home },
+        { url: "/dashboard/addemployee", title: "Manage Employee", icon: Settings },
+        { url: "/dashboard/attendence", title: "Employee Attendance", icon: Home },
+        { url: "/dashboard/applications", title: "Employee Applications", icon: User },
+        { url: "/dashboard/company-holidays", title: "Company Calendar", icon: HelpCircle },
+      ],
+      secondary: [],
+    };
+  }
+  return {
+    main: [
+      { url: "/employee-dashboard", title: "Dashboard", icon: Home },
+      { url: "/employee-dashboard/attendance", title: "My Attendance", icon: Home },
+      { url: "/employee-dashboard/company-holidays", title: "Company Calendar", icon: HelpCircle },
+      { url: "/employee-dashboard/leaves", title: "Leave Management", icon: Settings },
+      { url: "/employee-dashboard/salary", title: "Salary Structure", icon: User },
+      { url: "/employee-dashboard/profile", title: "My Profile", icon: User },
+    ],
+    secondary: [],
+  };
 };
 
 interface MobileDrawerProps {
@@ -60,6 +75,7 @@ const NavItem = ({ item, isActive }: { item: NavItemType; isActive: boolean }) =
 export default function MobileDrawer({ user }: MobileDrawerProps) {
   const location = useLocation();
   const { logout } = useAuth();
+  const items = getNavItems((user as any)?.role);
 
   return (
     <Sheet>
@@ -85,7 +101,7 @@ export default function MobileDrawer({ user }: MobileDrawerProps) {
                 Main
               </h3>
               <nav className="space-y-1">
-                {navItems.main.map((item) => {
+                {items.main.map((item) => {
                   const isActive = location.pathname === item.url;
                   return (
                     <NavItem key={item.url} item={item} isActive={isActive} />
@@ -100,7 +116,7 @@ export default function MobileDrawer({ user }: MobileDrawerProps) {
                 More
               </h3>
               <nav className="space-y-1">
-                {navItems.secondary.map((item) => (
+                {items.secondary.map((item) => (
                   <NavItem key={item.url} item={item} isActive={false} />
                 ))}
               </nav>

@@ -59,7 +59,7 @@ export function LoginForm({
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         console.log("User data after login:", user);
         
-        if (user.role === 'admin') {
+        if (user.role === 'admin' || user.role === 'hr') {
           console.log("Navigating to admin dashboard...");
           navigate('/dashboard');
         } else if (user.role === 'employee') {

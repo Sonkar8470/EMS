@@ -8,6 +8,7 @@ interface DashboardStats {
   presentDays: number
   leaveDays: number
   wfhDays: number
+  avgHours: number
 }
 type UpcomingHoliday = { id: string; date: string; holidayName: string; day?: string }
 
@@ -16,7 +17,8 @@ export default function EmployeeCards() {
   const [stats, setStats] = useState<DashboardStats>({
     presentDays: 0,
     leaveDays: 0,
-    wfhDays: 0
+    wfhDays: 0,
+    avgHours: 0,
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +29,13 @@ export default function EmployeeCards() {
       setLoading(true)
       setError(null)
       const response = await dashboardAPI.getEmployeeStats()
-      setStats(response.data)
+      const { presentDays, leaveDays, wfhDays, avgHours } = response?.data || {}
+      setStats({
+        presentDays: Number(presentDays) || 0,
+        leaveDays: Number(leaveDays) || 0,
+        wfhDays: Number(wfhDays) || 0,
+        avgHours: Number(avgHours) || 0,
+      })
       // Fetch upcoming holidays
       const { data: up } = await holidaysAPI.upcoming(3)
       const normalized: UpcomingHoliday[] = (up || []).map((h: any) => ({
@@ -116,7 +124,7 @@ export default function EmployeeCards() {
           <IconUser className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent className="px-2 sm:px-6 pb-2 sm:pb-6">
-          <div className="text-lg sm:text-2xl font-bold">{stats.presentDays}</div>
+          <div className="text-lg sm:text-2xl font-bold">{Number(stats.presentDays) || 0}</div>
           <p className="text-xs text-muted-foreground">This month</p>
         </CardContent>
       </Card>
@@ -126,7 +134,7 @@ export default function EmployeeCards() {
           <IconCalendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent className="px-2 sm:px-6 pb-2 sm:pb-6">
-          <div className="text-lg sm:text-2xl font-bold">{stats.leaveDays}</div>
+          <div className="text-lg sm:text-2xl font-bold">{Number(stats.leaveDays) || 0}</div>
           <p className="text-xs text-muted-foreground">This month</p>
         </CardContent>
       </Card>
@@ -136,27 +144,17 @@ export default function EmployeeCards() {
           <IconHome className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent className="px-2 sm:px-6 pb-2 sm:pb-6">
-          <div className="text-lg sm:text-2xl font-bold">{stats.wfhDays}</div>
+          <div className="text-lg sm:text-2xl font-bold">{Number(stats.wfhDays) || 0}</div>
           <p className="text-xs text-muted-foreground">This month</p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-2 sm:px-6 py-2 sm:py-6">
-          <CardTitle className="text-xs sm:text-sm font-medium">Upcoming Holidays</CardTitle>
+          <CardTitle className="text-xs sm:text-sm font-medium">Average Hours</CardTitle>
         </CardHeader>
         <CardContent className="px-2 sm:px-6 pb-2 sm:pb-6">
-          {holidays.length === 0 ? (
-            <div className="text-xs sm:text-sm text-muted-foreground">No upcoming holidays</div>
-          ) : (
-            <ul className="text-xs sm:text-sm space-y-1">
-              {holidays.map(h => (
-                <li key={h.id} className="flex items-center justify-between">
-                  <span className="truncate">{h.holidayName}</span>
-                  <span className="text-muted-foreground text-xs">{new Date(h.date).toLocaleDateString()}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="text-lg sm:text-2xl font-bold">{Number(stats.avgHours) || 0}</div>
+          <p className="text-xs text-muted-foreground">Avg hours per day</p>
         </CardContent>
       </Card>
     </div>

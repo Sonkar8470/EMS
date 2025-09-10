@@ -24,10 +24,10 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
-// Create announcement (admin only)
+// Create announcement (admin or HR)
 router.post("/", auth, async (req, res) => {
   try {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (req.user?.role !== "admin" && req.user?.role !== "hr") return res.status(403).json({ message: "Admin/HR access required" });
     const { title, message, pinned, startsAt, endsAt } = req.body || {};
     if (!title || !message) return res.status(400).json({ message: "title and message are required" });
 
@@ -52,10 +52,10 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-// Update announcement (admin only)
+// Update announcement (admin or HR)
 router.put("/:id", auth, async (req, res) => {
   try {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (req.user?.role !== "admin" && req.user?.role !== "hr") return res.status(403).json({ message: "Admin/HR access required" });
     const { id } = req.params;
     const { title, message, pinned, startsAt, endsAt } = req.body || {};
     const updated = await Announcement.findByIdAndUpdate(
@@ -84,10 +84,10 @@ router.put("/:id", auth, async (req, res) => {
   }
 });
 
-// Delete announcement (admin only)
+// Delete announcement (admin or HR)
 router.delete("/:id", auth, async (req, res) => {
   try {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (req.user?.role !== "admin" && req.user?.role !== "hr") return res.status(403).json({ message: "Admin/HR access required" });
     const { id } = req.params;
     const found = await Announcement.findById(id);
     if (!found) return res.status(404).json({ message: "Announcement not found" });

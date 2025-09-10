@@ -49,7 +49,7 @@ router.get("/upcoming", authMiddleware, async (req, res) => {
 // POST /holidays/seed -> admin can insert predefined holiday JSON for 2025
 router.post("/seed", authMiddleware, async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
+    if (req.user.role !== "admin" && req.user.role !== "hr") {
       return res.status(403).json({ message: "Forbidden" });
     }
 
@@ -95,7 +95,7 @@ export default router;
 // DELETE /holidays/:id -> mark holiday as not applicable (unmark)
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
+    if (req.user.role !== "admin" && req.user.role !== "hr") {
       return res.status(403).json({ message: "Forbidden" });
     }
     const { id } = req.params;

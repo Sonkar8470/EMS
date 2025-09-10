@@ -38,7 +38,11 @@ export function SiteHeader() {
         />
         
         <h1 className="text-sm sm:text-base font-medium truncate">
-          {user?.role === "admin" ? "Admin Dashboard" : "Employee Dashboard"}
+          {user?.role === "admin"
+            ? "Admin Dashboard"
+            : user?.role === "hr"
+              ? "HR Dashboard"
+              : "Employee Dashboard"}
         </h1>
         
         <div className="ml-auto flex items-center gap-2">

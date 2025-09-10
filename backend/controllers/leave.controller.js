@@ -81,7 +81,7 @@ export const getEmployeeLeaves = async (req, res) => {
   try {
     const employeeId = req.user?._id;
     const leaves = await Leave.find({ employeeId })
-      .populate({ path: "history.adminId", select: "name email employeeId" })
+      .populate({ path: "history.adminId", select: "name email employeeId role" })
       .sort({ appliedAt: -1 });
     res.json(leaves);
   } catch (err) {
@@ -94,7 +94,7 @@ export const getEmployeeWFH = async (req, res) => {
   try {
     const employeeId = req.user?._id;
     const wfhs = await WFH.find({ employeeId })
-      .populate({ path: "history.adminId", select: "name email employeeId" })
+      .populate({ path: "history.adminId", select: "name email employeeId role" })
       .sort({ appliedAt: -1 });
     res.json(wfhs);
   } catch (err) {
@@ -107,7 +107,7 @@ export const getAllLeaveApplications = async (_req, res) => {
   try {
     const leaves = await Leave.find({})
       .populate({ path: "employeeId", select: "name email employeeId" })
-      .populate({ path: "history.adminId", select: "name email employeeId" })
+      .populate({ path: "history.adminId", select: "name email employeeId role" })
       .sort({ appliedAt: -1 });
     res.json(leaves);
   } catch (err) {
@@ -120,7 +120,7 @@ export const getAllWFHApplications = async (_req, res) => {
   try {
     const wfhs = await WFH.find({})
       .populate({ path: "employeeId", select: "name email employeeId" })
-      .populate({ path: "history.adminId", select: "name email employeeId" })
+      .populate({ path: "history.adminId", select: "name email employeeId role" })
       .sort({ appliedAt: -1 });
     res.json(wfhs);
   } catch (err) {
@@ -146,7 +146,7 @@ export const updateLeaveStatus = async (req, res) => {
     updated.history = updated.history || [];
     updated.history.push({ action: status, adminId: req.user?._id, date: new Date() });
     await updated.save();
-    await updated.populate({ path: "history.adminId", select: "name email employeeId" });
+    await updated.populate({ path: "history.adminId", select: "name email employeeId role" });
     try {
       const io = req.app.get("io");
       if (io) {

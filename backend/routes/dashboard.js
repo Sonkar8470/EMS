@@ -48,18 +48,42 @@ router.get("/employee-stats", authMiddleware, async (req, res) => {
       },
     ]);
 
-    const wfhStats = await WFH.aggregate([
-      { $match: { user: employeeId, date: { $gte: monthStartUtc, $lt: nextMonthStartUtc } } },
-      { $group: { _id: null, wfhDays: { $sum: 1 } } },
-    ]);
+    // Compute approved WFH days from WFH requests overlapping the selected month
+    const approvedWfh = await WFH.find({
+      employeeId,
+      status: "approved",
+      endDate: { $gte: monthStartUtc },
+      startDate: { $lt: nextMonthStartUtc },
+    }).select("startDate endDate");
+
+    const computeOverlapDays = (start, end) => {
+      const s = new Date(Math.max(start.getTime(), monthStartUtc.getTime()));
+      const e = new Date(Math.min(end.getTime(), nextMonthStartUtc.getTime() - 1));
+      const sUtc = new Date(Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), s.getUTCDate()));
+      const eUtc = new Date(Date.UTC(e.getUTCFullYear(), e.getUTCMonth(), e.getUTCDate()));
+      const diff = Math.floor((eUtc.getTime() - sUtc.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+      return Math.max(0, diff);
+    };
+
+    const wfhDaysFromRequests = approvedWfh.reduce((sum, doc) => sum + computeOverlapDays(doc.startDate, doc.endDate), 0);
+
+    // Compute approved Leave days from Leave requests overlapping the selected month
+    const approvedLeaves = await Leave.find({
+      employeeId,
+      status: "approved",
+      endDate: { $gte: monthStartUtc },
+      startDate: { $lt: nextMonthStartUtc },
+    }).select("startDate endDate");
+
+    const leaveDaysFromRequests = approvedLeaves.reduce((sum, doc) => sum + computeOverlapDays(doc.startDate, doc.endDate), 0);
 
     const stats = attendanceStats[0] || { presentDays: 0, leaveDays: 0, wfhDaysFromAttendance: 0, totalHours: 0, totalDays: 0 };
-    const wfhCount = Math.max(stats.wfhDaysFromAttendance || 0, wfhStats[0]?.wfhDays || 0);
+    const wfhCount = Math.max(stats.wfhDaysFromAttendance || 0, wfhDaysFromRequests || 0);
     const avgHours = stats.totalDays > 0 ? (stats.totalHours / stats.totalDays).toFixed(1) : "0.0";
 
     res.json({
       presentDays: stats.presentDays,
-      leaveDays: stats.leaveDays,
+      leaveDays: leaveDaysFromRequests || stats.leaveDays,
       wfhDays: wfhCount,
       avgHours: parseFloat(avgHours),
     });
@@ -74,7 +98,7 @@ router.get("/employee-stats", authMiddleware, async (req, res) => {
 // ---------------------------
 router.get("/overall-stats", authMiddleware, async (req, res) => {
   try {
-    if (req.user.role !== "admin") return res.status(403).json({ message: "Access denied. Admin role required." });
+    if (req.user.role !== "admin" && req.user.role !== "hr") return res.status(403).json({ message: "Access denied. Admin/HR role required." });
 
     const { month, year } = req.query;
     const { monthStartUtc, nextMonthStartUtc } = getMonthRangeUtc(month, year);
@@ -122,7 +146,7 @@ router.get("/overall-stats", authMiddleware, async (req, res) => {
 // ---------------------------
 router.get("/admin-summary", authMiddleware, async (req, res) => {
   try {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Access denied. Admin role required." });
+    if (req.user?.role !== "admin" && req.user?.role !== "hr") return res.status(403).json({ message: "Access denied. Admin/HR role required." });
 
     // keep the day-based logic intact; month/year are parsed to satisfy the requirement without altering semantics
     const now = new Date();
@@ -169,7 +193,7 @@ router.get("/admin-summary", authMiddleware, async (req, res) => {
 // ---------------------------
 router.get("/performance", authMiddleware, async (req, res) => {
   try {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Access denied. Admin role required." });
+    if (req.user?.role !== "admin" && req.user?.role !== "hr") return res.status(403).json({ message: "Access denied. Admin/HR role required." });
 
     const { month, year } = req.query;
     const { monthStartUtc, nextMonthStartUtc } = getMonthRangeUtc(month, year);
